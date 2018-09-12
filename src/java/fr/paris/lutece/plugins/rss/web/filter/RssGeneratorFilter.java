@@ -38,6 +38,7 @@ import fr.paris.lutece.plugins.rss.service.RssGeneratorService;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
+import fr.paris.lutece.util.http.SecurityUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,6 +83,13 @@ public class RssGeneratorFilter implements Filter
         strRssStorageRoot = ( strRssStorageRoot.endsWith( "/" ) ) ? strRssStorageRoot : ( strRssStorageRoot + "/" );
 
         String strRssName = strURI.substring( strURI.indexOf( strRssStorageRoot ) + strRssStorageRoot.length(  ) );
+        
+        if ( SecurityUtil.containsPathManipulationChars( request, strRssName ) )
+        {
+            AppLogService.info( "Invalid Requested RSS file" );
+            strRssName = "" ;
+        }
+        
         String strRssPath = AppPathService.getPath( RssGeneratorService.PROPERTY_RSS_STORAGE_FOLDER_PATH, strRssName );
         File dirRSS = new File( strRssPath );
 
