@@ -73,19 +73,19 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public int newPrimaryKey( boolean bActive )
     {
-        DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_NEW_PK : SQL_QUERY_NEW_PK_OFF );
-        daoUtil.executeQuery(  );
-
         int nKey;
-
-        if ( !daoUtil.next(  ) )
+        try( DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_NEW_PK : SQL_QUERY_NEW_PK_OFF ) )
         {
-            // if the table is empty
-            nKey = 1;
+            daoUtil.executeQuery(  );
+    
+            if ( !daoUtil.next(  ) )
+            {
+                // if the table is empty
+                nKey = 1;
+            }
+    
+            nKey = daoUtil.getInt( 1 ) + 1;
         }
-
-        nKey = daoUtil.getInt( 1 ) + 1;
-        daoUtil.free(  );
 
         return nKey;
     }
@@ -97,19 +97,20 @@ public final class RssFeedDAO implements IRssFeedDAO
     public void insert( RssFeed rssFeed )
     {
         boolean bActive = rssFeed.getIsActive(  );
-        DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_INSERT : SQL_QUERY_INSERT_OFF );
-        rssFeed.setId( newPrimaryKey( bActive ) );
-        daoUtil.setInt( 1, rssFeed.getId(  ) );
-        daoUtil.setString( 2, rssFeed.getName(  ) );
-        daoUtil.setString( 3, rssFeed.getUrl(  ) );
-        daoUtil.setTimestamp( 4, rssFeed.getLastFetchDate(  ) );
-        daoUtil.setInt( 5, rssFeed.getLastFetchStatus(  ) );
-        daoUtil.setString( 6, rssFeed.getLastFetchError(  ) );
-        daoUtil.setString( 7, rssFeed.getWorkgroup(  ) );
-        daoUtil.setInt( 8, rssFeed.getIdIncludeStyle(  ) );
-
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try( DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_INSERT : SQL_QUERY_INSERT_OFF ) )
+        {
+            rssFeed.setId( newPrimaryKey( bActive ) );
+            daoUtil.setInt( 1, rssFeed.getId(  ) );
+            daoUtil.setString( 2, rssFeed.getName(  ) );
+            daoUtil.setString( 3, rssFeed.getUrl(  ) );
+            daoUtil.setTimestamp( 4, rssFeed.getLastFetchDate(  ) );
+            daoUtil.setInt( 5, rssFeed.getLastFetchStatus(  ) );
+            daoUtil.setString( 6, rssFeed.getLastFetchError(  ) );
+            daoUtil.setString( 7, rssFeed.getWorkgroup(  ) );
+            daoUtil.setInt( 8, rssFeed.getIdIncludeStyle(  ) );
+    
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -120,27 +121,27 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public RssFeed load( int nRssFeedId, boolean bActive )
     {
-        DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECT : SQL_QUERY_SELECT_OFF );
-        daoUtil.setInt( 1, nRssFeedId );
-        daoUtil.executeQuery(  );
-
         RssFeed rssFeed = null;
 
-        if ( daoUtil.next(  ) )
+        try( DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECT : SQL_QUERY_SELECT_OFF ) )
         {
-            rssFeed = new RssFeed(  );
-            rssFeed.setIsActive( bActive );
-            rssFeed.setId( daoUtil.getInt( 1 ) );
-            rssFeed.setName( daoUtil.getString( 2 ) );
-            rssFeed.setUrl( daoUtil.getString( 3 ) );
-            rssFeed.setLastFetchDate( daoUtil.getTimestamp( 4 ) );
-            rssFeed.setLastFetchStatus( daoUtil.getInt( 5 ) );
-            rssFeed.setLastFetchError( daoUtil.getString( 6 ) );
-            rssFeed.setWorkgroup( daoUtil.getString( 7 ) );
-            rssFeed.setIdIncludeStyle( daoUtil.getInt( 8 ) );
+            daoUtil.setInt( 1, nRssFeedId );
+            daoUtil.executeQuery(  );
+    
+            if ( daoUtil.next(  ) )
+            {
+                rssFeed = new RssFeed(  );
+                rssFeed.setIsActive( bActive );
+                rssFeed.setId( daoUtil.getInt( 1 ) );
+                rssFeed.setName( daoUtil.getString( 2 ) );
+                rssFeed.setUrl( daoUtil.getString( 3 ) );
+                rssFeed.setLastFetchDate( daoUtil.getTimestamp( 4 ) );
+                rssFeed.setLastFetchStatus( daoUtil.getInt( 5 ) );
+                rssFeed.setLastFetchError( daoUtil.getString( 6 ) );
+                rssFeed.setWorkgroup( daoUtil.getString( 7 ) );
+                rssFeed.setIdIncludeStyle( daoUtil.getInt( 8 ) );
+            }
         }
-
-        daoUtil.free(  );
 
         return rssFeed;
     }
@@ -151,11 +152,12 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public void delete( RssFeed rssFeed )
     {
-        DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_DELETE : SQL_QUERY_DELETE_OFF );
-        daoUtil.setInt( 1, rssFeed.getId(  ) );
-
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try( DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_DELETE : SQL_QUERY_DELETE_OFF ) )
+        {
+            daoUtil.setInt( 1, rssFeed.getId(  ) );
+    
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -164,17 +166,18 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public void store( RssFeed rssFeed )
     {
-        DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_UPDATE : SQL_QUERY_UPDATE_OFF );
-        daoUtil.setInt( 1, rssFeed.getId(  ) );
-        daoUtil.setString( 2, rssFeed.getName(  ) );
-        daoUtil.setString( 3, rssFeed.getUrl(  ) );
-        daoUtil.setString( 4, rssFeed.getWorkgroup(  ) );
-        daoUtil.setInt( 5, rssFeed.getIdIncludeStyle(  ) );
-
-        daoUtil.setInt( 6, rssFeed.getId(  ) );
-
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try( DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_UPDATE : SQL_QUERY_UPDATE_OFF ) )
+        {
+            daoUtil.setInt( 1, rssFeed.getId(  ) );
+            daoUtil.setString( 2, rssFeed.getName(  ) );
+            daoUtil.setString( 3, rssFeed.getUrl(  ) );
+            daoUtil.setString( 4, rssFeed.getWorkgroup(  ) );
+            daoUtil.setInt( 5, rssFeed.getIdIncludeStyle(  ) );
+    
+            daoUtil.setInt( 6, rssFeed.getId(  ) );
+    
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -183,15 +186,16 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public void storeLastFetchInfos( RssFeed rssFeed )
     {
-        DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_UPDATE_LAST_FETCH_INFOS
-                                                               : SQL_QUERY_UPDATE_LAST_FETCH_INFOS_OFF );
-        daoUtil.setTimestamp( 1, rssFeed.getLastFetchDate(  ) );
-        daoUtil.setInt( 2, rssFeed.getLastFetchStatus(  ) );
-        daoUtil.setString( 3, rssFeed.getLastFetchError(  ) );
-        daoUtil.setInt( 4, rssFeed.getId(  ) );
-
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try( DAOUtil daoUtil = new DAOUtil( rssFeed.getIsActive(  ) ? SQL_QUERY_UPDATE_LAST_FETCH_INFOS
+                                                               : SQL_QUERY_UPDATE_LAST_FETCH_INFOS_OFF ) )
+        {
+            daoUtil.setTimestamp( 1, rssFeed.getLastFetchDate(  ) );
+            daoUtil.setInt( 2, rssFeed.getLastFetchStatus(  ) );
+            daoUtil.setString( 3, rssFeed.getLastFetchError(  ) );
+            daoUtil.setInt( 4, rssFeed.getId(  ) );
+    
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -201,29 +205,29 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public List<RssFeed> selectRssFeeds( boolean bActive )
     {
-        DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECTALL : SQL_QUERY_SELECTALL_OFF );
-        daoUtil.executeQuery(  );
-
-        List<RssFeed> list = new ArrayList<RssFeed>(  );
-
-        while ( daoUtil.next(  ) )
+        List<RssFeed> list = new ArrayList<>(  );
+        try( DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECTALL : SQL_QUERY_SELECTALL_OFF ) )
         {
-            RssFeed rssFeed = new RssFeed(  );
+            daoUtil.executeQuery(  );
+    
+            while ( daoUtil.next(  ) )
+            {
+                RssFeed rssFeed = new RssFeed(  );
+    
+                rssFeed.setIsActive( bActive );
+                rssFeed.setId( daoUtil.getInt( 1 ) );
+                rssFeed.setName( daoUtil.getString( 2 ) );
+                rssFeed.setUrl( daoUtil.getString( 3 ) );
+                rssFeed.setLastFetchDate( daoUtil.getTimestamp( 4 ) );
+                rssFeed.setLastFetchStatus( daoUtil.getInt( 5 ) );
+                rssFeed.setLastFetchError( daoUtil.getString( 6 ) );
+                rssFeed.setWorkgroup( daoUtil.getString( 7 ) );
+                rssFeed.setIdIncludeStyle( daoUtil.getInt( 8 ) );
+    
+                list.add( rssFeed );
+            }
 
-            rssFeed.setIsActive( bActive );
-            rssFeed.setId( daoUtil.getInt( 1 ) );
-            rssFeed.setName( daoUtil.getString( 2 ) );
-            rssFeed.setUrl( daoUtil.getString( 3 ) );
-            rssFeed.setLastFetchDate( daoUtil.getTimestamp( 4 ) );
-            rssFeed.setLastFetchStatus( daoUtil.getInt( 5 ) );
-            rssFeed.setLastFetchError( daoUtil.getString( 6 ) );
-            rssFeed.setWorkgroup( daoUtil.getString( 7 ) );
-            rssFeed.setIdIncludeStyle( daoUtil.getInt( 8 ) );
-
-            list.add( rssFeed );
         }
-
-        daoUtil.free(  );
 
         return list;
     }
@@ -235,19 +239,19 @@ public final class RssFeedDAO implements IRssFeedDAO
      */
     public boolean checkUrlNotUsed( String strUrl )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_URL );
-        daoUtil.setString( 1, strUrl );
-        daoUtil.setString( 2, strUrl );
-        daoUtil.executeQuery(  );
-
-        if ( daoUtil.next(  ) )
+        try( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_URL ) )
         {
-            daoUtil.free(  );
-
-            return false;
+            daoUtil.setString( 1, strUrl );
+            daoUtil.setString( 2, strUrl );
+            daoUtil.executeQuery(  );
+    
+            if ( daoUtil.next(  ) )
+            {
+                daoUtil.free(  );
+    
+                return false;
+            }
         }
-
-        daoUtil.free(  );
 
         return true;
     }
@@ -260,19 +264,19 @@ public final class RssFeedDAO implements IRssFeedDAO
     public ReferenceList selectRssFeedReferenceList( boolean bActive )
     {
         ReferenceList listRssFeeds = new ReferenceList(  );
-        DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECTALL : SQL_QUERY_SELECTALL_OFF );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try( DAOUtil daoUtil = new DAOUtil( bActive ? SQL_QUERY_SELECTALL : SQL_QUERY_SELECTALL_OFF ) )
         {
-            RssFeed rssFeed = new RssFeed(  );
-            rssFeed.setId( daoUtil.getInt( 1 ) );
-            rssFeed.setName( daoUtil.getString( 2 ) );
-
-            listRssFeeds.addItem( rssFeed.getId(  ), rssFeed.getName(  ) );
+            daoUtil.executeQuery(  );
+    
+            while ( daoUtil.next(  ) )
+            {
+                RssFeed rssFeed = new RssFeed(  );
+                rssFeed.setId( daoUtil.getInt( 1 ) );
+                rssFeed.setName( daoUtil.getString( 2 ) );
+    
+                listRssFeeds.addItem( rssFeed.getId(  ), rssFeed.getName(  ) );
+            }
         }
-
-        daoUtil.free(  );
 
         return listRssFeeds;
     }
