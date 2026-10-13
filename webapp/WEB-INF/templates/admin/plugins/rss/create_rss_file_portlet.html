@@ -1,52 +1,40 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.create_rss_file.tableLabel}' />
-			<@boxBody>
-				<@tform method='post' name='create_rss_file' id='create_rss_file' action='jsp/admin/plugins/rss/DoCreateRssFilePortlet.jsp'>
-					<@formGroup labelFor='rss_name' labelKey='#i18n{rss.create_rss_file.rowTitleName}' mandatory=true>
-						<@input type='text' id='rss_name' name='rss_name' maxlength=50 />
-					</@formGroup>
-					
-					<@formGroup labelFor='rss_portlet_id' labelKey='#i18n{rss.create_rss_file.rowTitleDocumentList}' mandatory=true>
-						<#if portlet_list?has_content>
-							<@select name='rss_portlet_id' default_value='' items=portlet_list />
-						<#else>
-							<@alert color='warning'>#i18n{rss.create_rss_file.noPortletAvailable}</@alert>
-						</#if>
-					</@formGroup>
-					
-					<@formGroup labelFor='rss_description' labelKey='#i18n{rss.create_rss_file.rowTitleDescription}' mandatory=true>
-						<@input type='text' id='rss_description' name='rss_description' maxlength=200 />
-					</@formGroup>
-					
-					<@formGroup labelFor='rss_max_items' labelKey='#i18n{rss.create_rss_file.maxItem}' mandatory=true>
-						<#if rss_max_items?has_content>
-							<#assign value = rss_max_items />
-						<#else>
-							<#assign value = '1' />
-						</#if>
-						<@input type='number' min=1 max=100 id='rss_max_items' name='rss_max_items' maxlength=10 value=value />
-					</@formGroup>
-					
-					<@formGroup labelFor='rss_feed_type' labelKey='#i18n{rss.create_rss_file.feedType}'>
-						<@select name='rss_feed_type' default_value='${rss_feed_type}' items=feed_type_list />
-					</@formGroup>
-					
-					<@formGroup labelFor='rss_encoding' labelKey='#i18n{rss.create_rss_file.encoding}'>
-						<@select name='rss_encoding' default_value='${rss_encoding}' items=encoding_list />
-					</@formGroup>
-					
-					<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.create_rss_file.rowWorkgroupFile}'>
-						<@select name='workgroup_key' default_value='all' items=user_workgroup_list />
-					</@formGroup>
-					
-					<@formGroup>
-						<@button type='submit' name='save' title='#i18n{rss.create_rss_file.buttonValidate}' buttonIcon='save' />
-						<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp' title='#i18n{portal.util.labelBack}' buttonIcon='times' color='default' />
-					</@formGroup>
-				</@tform>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.create_rss_file.pageTitle}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp' buttonIcon='arrow-left' title='#i18n{portal.util.labelBack}' color='light' />
+		</@pageHeader>
+		<@messages errors=errors![] />
+		<@tform method='post' name='rss_file' id='rss_file' action='jsp/admin/plugins/rss/ManageRssFiles.jsp' boxed=true>
+			<@input type='hidden' name='action' value='createRssFilePortlet' />
+			<@formGroup labelFor='rss_name' labelKey='#i18n{rss.create_rss_file.rowTitleName}' mandatory=true rows=2>
+				<@input type='text' id='rss_name' name='rss_name' maxlength=50 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='rss_portlet_id' labelKey='#i18n{rss.create_rss_file.rowTitleDocumentList}' mandatory=true rows=2>
+				<#if portlet_list?has_content>
+					<@select name='rss_portlet_id' default_value='' items=portlet_list mandatory=true />
+				<#else>
+					<@alert color='warning'>#i18n{rss.create_rss_file.noPortletAvailable}</@alert>
+				</#if>
+			</@formGroup>
+			<@formGroup labelFor='rss_description' labelKey='#i18n{rss.create_rss_file.rowTitleDescription}' mandatory=true rows=2>
+				<@input type='text' id='rss_description' name='rss_description' maxlength=200 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='rss_max_items' labelKey='#i18n{rss.modify_rss_file.maxItem}' rows=2>
+				<@input type='number' min=0 max=100 id='rss_max_items' name='rss_max_items' value=rss_max_items!'' />
+			</@formGroup>
+			<@formGroup labelFor='rss_feed_type' labelKey='#i18n{rss.modify_rss_file.feedType}' mandatory=true rows=2>
+				<@select name='rss_feed_type' default_value=rss_feed_type!'' items=feed_type_list mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='rss_encoding' labelKey='#i18n{rss.modify_rss_file.encoding}' mandatory=true rows=2>
+				<@select name='rss_encoding' default_value=rss_encoding!'' items=encoding_list mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.create_rss_file.rowWorkgroupFile}' rows=2>
+				<@select name='workgroup_key' default_value=selected_workgroup!'all' items=user_workgroup_list />
+			</@formGroup>
+			<@formGroup rows=2>
+				<@button type='submit' title='#i18n{portal.util.labelValidate}' buttonIcon='check' color='primary' />
+				<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp' title='#i18n{portal.util.labelCancel}' buttonIcon='x' color='light' />
+			</@formGroup>
+		</@tform>
+	</@pageColumn>
+</@pageContainer>

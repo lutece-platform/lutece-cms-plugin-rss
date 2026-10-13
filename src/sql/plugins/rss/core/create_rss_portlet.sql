@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset rss:create_rss_portlet.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:1 SELECT COUNT(*) FROM rss_portlet WHERE 1 = 0
 --
 -- Structure for table rss_portlet
 --

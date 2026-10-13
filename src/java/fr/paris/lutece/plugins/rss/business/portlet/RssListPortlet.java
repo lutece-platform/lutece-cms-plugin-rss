@@ -33,82 +33,60 @@
  */
 package fr.paris.lutece.plugins.rss.business.portlet;
 
-import fr.paris.lutece.plugins.rss.business.RssFeed;
 import fr.paris.lutece.plugins.rss.business.RssFeedHome;
-import fr.paris.lutece.portal.business.portlet.Portlet;
-import fr.paris.lutece.util.xml.XmlUtil;
+import fr.paris.lutece.portal.business.portlet.PortletHtmlContent;
 
-import java.util.List;
+import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
- * This class represents business objects RssPortlet
+ * This class represents business objects RssListPortlet
  */
-public class RssListPortlet extends Portlet
+public class RssListPortlet extends PortletHtmlContent
 {
-    private static final String TAG_RSS_LIST_PORTLET = "rss-list-portlet";
-    private static final String TAG_RSS_LIST_PORTLET_NAME = "rss-list-portlet-name";
-    private static final String TAG_RSS_LIST_PORTLET_URL = "rss-list-portlet-url";
+    private static final String TEMPLATE_DEFAULT = "skin/plugins/rss/portlet/portlet_rss_list.html";
+    private static final String MARK_RSS_FEEDS_LIST = "rss_feeds_list";
 
     /**
      * Sets the identifier of the portlet type to value specified
      */
     public RssListPortlet(  )
     {
-        setPortletTypeId( RssListPortletHome.getInstance(  ).getPortletTypeId(  ) );
+        setPortletTypeId( CDI.current( ).select( RssListPortletHome.class ).get( ).getPortletTypeId(  ) );
     }
 
     /**
-     * Returns the Xml code of the Rss portlet with XML heading
+     * Renders the list of the active feeds
      *
-     * @param request The HTTP servlet request
-     * @return the Xml code of the Rss portlet
+     * @param request the HTTP request
+     * @return the HTML of the portlet
      */
-    public String getXmlDocument( HttpServletRequest request )
+    @Override
+    public String getHtmlContent( HttpServletRequest request )
     {
-        return XmlUtil.getXmlHeader(  ) + getXml( request );
+        Map<String, Object> model = createPortletModel( );
+        model.put( MARK_RSS_FEEDS_LIST, RssFeedHome.getRssFeeds( ) );
+
+        return renderTemplate( request, TEMPLATE_DEFAULT, model );
     }
 
     /**
-     * Returns the Xml code of the Rss portlet without XML heading
-     *
-     * @param request The HTTP servlet request
-     * @return the Xml code of the Rss portlet content
-     */
-    public String getXml( HttpServletRequest request )
-    {
-        StringBuffer strXml = new StringBuffer(  );
-        List<RssFeed> listRssFeedList = RssFeedHome.getRssFeeds(  );
-
-        if ( listRssFeedList != null )
-        {
-            for ( RssFeed feed : listRssFeedList )
-            {
-                XmlUtil.beginElement( strXml, TAG_RSS_LIST_PORTLET );
-                XmlUtil.addElementHtml( strXml, TAG_RSS_LIST_PORTLET_NAME, feed.getName(  ) );
-                XmlUtil.addElementHtml( strXml, TAG_RSS_LIST_PORTLET_URL, feed.getUrl(  ) );
-                XmlUtil.endElement( strXml, TAG_RSS_LIST_PORTLET );
-            }
-        }
-
-        return addPortletTags( strXml );
-    }
-
-    /**
-     * Updates the current instance of the RssPortlet object
+     * Updates the current instance of the RssListPortlet object
      */
     public void update(  )
     {
-        RssListPortletHome.getInstance(  ).update( this );
+        CDI.current( ).select( RssListPortletHome.class ).get( ).update( this );
     }
 
     /**
-     * Removes the current instance of the RssPortlet object
+     * Removes the current instance of the RssListPortlet object
      */
+    @Override
     public void remove(  )
     {
-        RssListPortletHome.getInstance(  ).remove( this );
+        CDI.current( ).select( RssListPortletHome.class ).get( ).remove( this );
     }
 }

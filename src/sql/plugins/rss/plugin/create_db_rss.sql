@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset rss:create_db_rss.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:1 SELECT COUNT(*) FROM rss_feed WHERE 1 = 0
 --
 -- Structure for table rss_feed
 --

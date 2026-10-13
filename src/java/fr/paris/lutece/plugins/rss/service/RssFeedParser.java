@@ -33,22 +33,52 @@
  */
 package fr.paris.lutece.plugins.rss.service;
 
-import fr.paris.lutece.portal.service.plugin.PluginDefaultImplementation;
+import com.sun.syndication.feed.synd.SyndFeed;
+import com.sun.syndication.io.FeedException;
+import com.sun.syndication.io.SyndFeedInput;
+
+import fr.paris.lutece.portal.service.util.AppLogService;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.StringReader;
 
 
 /**
- * The rss plugin
+ * Reads the XML of an external feed
  */
-public class RssPlugin extends PluginDefaultImplementation
+public final class RssFeedParser
 {
-    public static final String PLUGIN_NAME = "rss";
+    /**
+     * Private constructor
+     */
+    private RssFeedParser( )
+    {
+    }
 
     /**
-     * Initialize the plugin Rss
+     * Parses the XML of a RSS or Atom feed
+     *
+     * @param strContent
+     *            the XML of the feed
+     * @return the feed, or null when the content is empty or not a feed
      */
-    public void init(  )
+    public static SyndFeed parse( String strContent )
     {
-        // Initialize the rss service
-        RssService.getInstance(  ).init(  );
+        if ( StringUtils.isBlank( strContent ) )
+        {
+            return null;
+        }
+
+        try
+        {
+            return new SyndFeedInput( ).build( new StringReader( strContent.trim( ) ) );
+        }
+        catch( FeedException | IllegalArgumentException e )
+        {
+            AppLogService.error( "Unable to parse a RSS feed : {}", e.getMessage( ), e );
+
+            return null;
+        }
     }
 }

@@ -1,3 +1,4 @@
-<@formGroup labelKey='#i18n{rss.create_portlet_rss.labelSource}' mandatory=true>
-	@combo_feeds@
+<@input type='hidden' name='token' value='${token}' />
+<@formGroup labelFor='feed_id' labelKey='#i18n{rss.create_portlet_rss.labelSource}' mandatory=true>
+	<#include "/admin/plugins/rss/portlet/combo_feed.html" />
 </@formGroup>

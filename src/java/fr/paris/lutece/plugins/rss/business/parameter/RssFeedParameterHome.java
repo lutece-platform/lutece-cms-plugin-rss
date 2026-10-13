@@ -34,7 +34,7 @@
 package fr.paris.lutece.plugins.rss.business.parameter;
 
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.util.ReferenceItem;
 import fr.paris.lutece.util.ReferenceList;
 
@@ -47,8 +47,7 @@ import fr.paris.lutece.util.ReferenceList;
 public class RssFeedParameterHome
 {
     // Static variable pointed at the DAO instance
-    private static IRssFeedParameterDAO _dao = (IRssFeedParameterDAO) SpringContextService.getPluginBean( "rss",
-            "rssFeedParameterDAO" );
+    private static IRssFeedParameterDAO _dao = CDI.current( ).select( IRssFeedParameterDAO.class ).get( );
 
     /**
     * Load the parameter value

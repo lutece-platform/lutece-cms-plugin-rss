@@ -1,34 +1,26 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.modify_rss_feed.pageTitle}' />
-			<@boxBody>
-				<@tform method='post' name='modify_rss_feed' id='modify_rss_feed' action='jsp/admin/plugins/rss/DoModifyRssFeed.jsp'>
-					<@input type='hidden' name='id_rss_feed' value='${rss_feed.id}' />
-					<#if rss_feed.isActive>
-						<#assign value = "true" />
-					<#else>
-						<#assign value = "false" />
-					</#if>
-					<@input type='hidden' name='rss_feed_is_active' value=value />
-					<@formGroup labelFor='folder_name' labelKey='#i18n{rss.modify_rss_feed.rowTitleName}' mandatory=true>
-						<@input type='text' id='rss_feed_name' name='rss_feed_name' value='${rss_feed.name}' maxlength=50 />
-					</@formGroup>
-					<@formGroup labelFor='folder_path' labelKey='#i18n{rss.modify_rss_feed.rowTitleUrl}' mandatory=true>
-						<@input type='text' id='rss_feed_url' name='rss_feed_url' value='${rss_feed.url}' maxlength=200 />
-					</@formGroup>
-					<@formGroup labelFor='rss_style' labelKey='#i18n{rss.modify_rss_feed.rowRssStyle}'>
-						<@select name='rss_style' default_value='${rss_feed.idIncludeStyle}' items=rss_style_list />
-					</@formGroup>
-					<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.modify_rss_feed.rowWorkgroupFile}'>
-						<@select name='workgroup_key' default_value='${rss_feed.workgroup}' items=user_workgroup_list />
-					</@formGroup>
-					<@formGroup>
-						<@button type='submit' title='#i18n{rss.modify_rss_feed.buttonModify}' buttonIcon='save' />
-						<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp' title='#i18n{portal.util.labelBack}' buttonIcon='times' color='default' />
-					</@formGroup>
-				</@tform>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.modify_rss_feed.pageTitle}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=manageRssFeeds&rss_feed_is_active=${rss_feed.isActive?c}' buttonIcon='arrow-left' title='#i18n{portal.util.labelBack}' color='light' />
+		</@pageHeader>
+		<@messages errors=errors![] />
+		<@tform method='post' name='modify_rss_feed' id='modify_rss_feed' action='jsp/admin/plugins/rss/ManageRssFeeds.jsp' boxed=true>
+			<@input type='hidden' name='action' value='modifyRssFeed' />
+			<@input type='hidden' name='id_rss_feed' value='${rss_feed.id}' />
+			<@input type='hidden' name='rss_feed_is_active' value=rss_feed.isActive?c />
+			<@formGroup labelFor='rss_feed_name' labelKey='#i18n{rss.modify_rss_feed.rowTitleName}' mandatory=true rows=2>
+				<@input type='text' id='rss_feed_name' name='rss_feed_name' value=rss_feed.name! maxlength=50 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='rss_feed_url' labelKey='#i18n{rss.modify_rss_feed.rowTitleUrl}' mandatory=true rows=2>
+				<@input type='text' id='rss_feed_url' name='rss_feed_url' value=rss_feed.url! maxlength=200 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.modify_rss_feed.rowWorkgroupFile}' rows=2>
+				<@select name='workgroup_key' default_value=rss_feed.workgroup!'all' items=user_workgroup_list />
+			</@formGroup>
+			<@formGroup rows=2>
+				<@button type='submit' title='#i18n{rss.modify_rss_feed.buttonModify}' buttonIcon='check' color='primary' />
+				<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=manageRssFeeds&rss_feed_is_active=${rss_feed.isActive?c}' title='#i18n{portal.util.labelCancel}' buttonIcon='x' color='light' />
+			</@formGroup>
+		</@tform>
+	</@pageColumn>
+</@pageContainer>

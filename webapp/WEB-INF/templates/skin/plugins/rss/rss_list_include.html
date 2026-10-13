@@ -1,12 +1,8 @@
-<ul>
- <#list rss_list as rss>
-        <li>
-        	<div>
-        		<a href="${rss.url}">${rss.name}</a>
-        	</div>
-        	<div>
-        		${rss.url}
-        	</div>
-        </li>
- </#list>
-</ul>
+<@chList class='rss-feeds'>
+<#list rss_feeds_list![] as rss>
+	<@chItem>
+		<@cBlock><#if (rss.url!'')?matches('^https?://.*')><@cLink href=rss.url label=rss.name! /><#else>${rss.name!}</#if></@cBlock>
+		<@cBlock><#outputformat "HTML">${rss.url!}</#outputformat></@cBlock>
+	</@chItem>
+</#list>
+</@chList>

@@ -47,6 +47,7 @@ import java.io.File;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.enterprise.inject.spi.CDI;
 
 
 /**
@@ -126,8 +127,7 @@ public final class AutoUpdatingRss
 
                 if ( ( generatedFile.getPortletId(  ) == 0 ) && ( generatedFile.getTypeResourceRss(  ) != null ) )
                 {
-                    IResourceRss resourceRss = RssService.getInstance(  )
-                                                         .getResourceRssInstance( generatedFile.getTypeResourceRss(  ),
+                    IResourceRss resourceRss = CDI.current( ).select( RssService.class ).get( ).getResourceRssInstance( generatedFile.getTypeResourceRss(  ),
                             null );
                     resourceRss.setId( generatedFile.getId(  ) );
                     resourceRss.setMaxItems( generatedFile.getMaxItems(  ) );

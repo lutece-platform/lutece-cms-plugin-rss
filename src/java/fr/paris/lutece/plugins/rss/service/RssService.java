@@ -35,52 +35,53 @@ package fr.paris.lutece.plugins.rss.service;
 
 import fr.paris.lutece.plugins.rss.business.RssFeed;
 import fr.paris.lutece.plugins.rss.business.RssFeedHome;
-import fr.paris.lutece.plugins.rss.business.RssGeneratedFile;
+import fr.paris.lutece.plugins.rss.business.RssGeneratedFilePortletRemovalListener;
 import fr.paris.lutece.plugins.rss.business.resourceRss.IResourceRssFactory;
 import fr.paris.lutece.portal.business.rss.IResourceRss;
 import fr.paris.lutece.portal.business.rss.IResourceRssType;
 import fr.paris.lutece.portal.service.i18n.I18nService;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppLogService;
+import fr.paris.lutece.portal.service.util.BeanUtils;
+import fr.paris.lutece.portal.service.util.RemovalListenerService;
 import fr.paris.lutece.util.ReferenceList;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.ServletContext;
+
 
 /**
  * The rss service
  *
  */
+@ApplicationScoped
 public class RssService implements IRssService
 {
-    private static RssService _singleton = new RssService(  );
-    private static final String BEAN_RESOURCE_RSS_FACTORY = "resourceRssFactory";
+    public static final String PLUGIN_NAME = "rss";
+
+    @Inject
     private IResourceRssFactory _resourceRssFactory;
 
-    /**
-    * Initialize the Rss service
-    *
-    */
-    public void init(  )
-    {
-        RssGeneratedFile.init(  );
-    }
+    @Inject
+    @Named( BeanUtils.BEAN_PORTLET_REMOVAL_SERVICE )
+    private RemovalListenerService _portletRemovalService;
 
     /**
-     * Returns the instance of the singleton
+     * Registers the portlet removal listener when the application starts
      *
-     * @return The instance of the singleton
+     * @param context
+     *            the servlet context
      */
-    public static RssService getInstance(  )
+    public void initializedService( @Observes @Initialized( ApplicationScoped.class ) ServletContext context )
     {
-        if ( _singleton == null )
-        {
-            _singleton = new RssService(  );
-        }
-
-        return _singleton;
+        _portletRemovalService.registerListener( new RssGeneratedFilePortletRemovalListener( ) );
     }
 
     /**
@@ -88,6 +89,7 @@ public class RssService implements IRssService
      * @param nIdRssFeed The RSS id
      * @return The content
      */
+    @Override
     public String getRssContent( int nIdRssFeed )
     {
         String rssContent = "";
@@ -104,43 +106,41 @@ public class RssService implements IRssService
         return rssContent;
     }
 
+    /**
+     * Returns the reference list of the active feeds
+     * @return the reference list of the active feeds
+     */
+    @Override
     public ReferenceList getRefListRssFeed(  )
     {
         return RssFeedHome.getRssFeedsReferenceList(  );
     }
 
+    /**
+     * Returns the active feeds
+     * @return the active feeds
+     */
     public static List<RssFeed> getRssFeed(  )
     {
         return RssFeedHome.getRssFeeds(  );
     }
 
     /**
-    *
-    * @return a IResourceRssFactory Object
-    */
-    private IResourceRssFactory getResourceRssFactory(  )
-    {
-        if ( _resourceRssFactory == null )
-        {
-            _resourceRssFactory = (IResourceRssFactory) SpringContextService.getPluginBean( RssPlugin.PLUGIN_NAME,
-                    BEAN_RESOURCE_RSS_FACTORY );
-        }
-
-        return _resourceRssFactory;
-    }
-
-    /**
      * return an instance of ResourceRss Object depending on the resource rss type
      * @param strKey the type resource rss key
      * @param locale the locale
-     * @return an instance of ResourceRss Object
+     * @return an instance of ResourceRss Object, or null when no resource rss type has this key
      */
     public IResourceRss getResourceRssInstance( String strKey, Locale locale )
     {
-        IResourceRss resourceRss = getResourceRssFactory(  ).getResourceRss( strKey );
-        resourceRss.getResourceRssType(  )
-                   .setTitle( I18nService.getLocalizedString( resourceRss.getResourceRssType(  ).getTitleI18nKey(  ),
-                locale ) );
+        IResourceRss resourceRss = _resourceRssFactory.getResourceRss( strKey );
+
+        if ( resourceRss != null )
+        {
+            resourceRss.getResourceRssType(  )
+                       .setTitle( I18nService.getLocalizedString( resourceRss.getResourceRssType(  ).getTitleI18nKey(  ),
+                    locale ) );
+        }
 
         return resourceRss;
     }
@@ -151,7 +151,7 @@ public class RssService implements IRssService
     */
     public Collection<IResourceRssType> getResourceRssTypeList(  )
     {
-        return getResourceRssFactory(  ).getAllResourceRssType(  );
+        return _resourceRssFactory.getAllResourceRssType(  );
     }
 
     /**

@@ -1,125 +1,72 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title=''>
-				<@aButton href='jsp/admin/plugins/rss/CreateRssFeed.jsp' title='#i18n{rss.manage_rss_feeds.buttonAddFeed}' hideTitle=['xs','sm','md'] buttonIcon='plus-circle' size='sm' />
-				<#if permission_advanced_parameter>
-					<@aButton href='jsp/admin/plugins/rss/ManageAdvancedParameters.jsp' title='#i18n{rss.manage_rss.labelAdvancedParameters}' hideTitle=['xs','sm','md'] buttonIcon='cog' size='sm' />
-				</#if>
-			</@boxHeader>
-			<@boxBody>
-				<@row>
-					<@columns md=7>
-						<!-- Active RSS box -->
-						<h4>#i18n{rss.manage_rss_feeds.active.tableLabel}</h4>
-						<@paginationAdmin paginator=paginator_active combo=0 nb_items_per_page=nb_items_per_page_active showcount=0 />
-						<#if active_rss_feeds_list?size &gt; 0>
-						<@table summary='#i18n{rss.manage_rss_feeds.tableSummary}'>
-							<@tableHead>
-								<@tr>
-									<@th>#i18n{rss.manage_rss_feeds.columnTitleName}</@th>
-									<@th></@th>
-									<@th>#i18n{rss.manage_rss_feeds.columnTitleOrder}</@th>
-									<@th>#i18n{rss.manage_rss_feeds.columnTitleActions}</@th>
-								</@tr>
-							</@tableHead>
-							<@tableBody>
-							<#list active_rss_feeds_list as active_feed >
-								<@tr>
-									<@td>
-										<strong>
-										<#if active_feed.lastFetchStatus != 1>
-											<@tag color='success' title='#i18n{rss.manage_rss_file.active.labelStateUp}' tagIcon='check' />
-										<#else>
-											<@tag color='danger' title='#i18n{rss.manage_rss_file.active.labelStateDown}' tagIcon='times' />
-										</#if>
-										 &nbsp;${active_feed.name}
-										</strong>
-										<p>
-										<#if active_feed.lastFetchDate?exists>
-											<@icon style='calendar' /> #i18n{rss.manage_rss_feeds.active.columnTitleLastUpdate} <strong>${active_feed.lastFetchDate?string.medium_short}</strong>
-										</#if>
-										</p>
-										<p>
-										<#if active_feed.lastFetchError?exists>
-											<#if active_feed.lastFetchError != "">
-											<@tag color='danger' title='#i18n{rss.manage_rss_feeds.labelConnectionError}' tagIcon='exclamation-triangle' />
-											</#if>
-										</#if>
-										</p>
-										<p>
-											<@tag color='default' title='#i18n{rss.manage_rss_feeds.columnTitleUrl}'>#i18n{rss.manage_rss_feeds.columnTitleUrl}</@tag>
-											<strong><@link href='${active_feed.url}' target='rss' title='${active_feed.name}'>${active_feed.url}</@link></strong>
-										</p>
-									</@td>
-									<@td>
-										<@tag color='default' title='Include'>Include</@tag> <strong>${active_feed.includeTag}</strong>
-									</@td>
-									<@td>
-										<@tform style='inline' method='post' action='jsp/admin/plugins/rss/DoChangeRssFeedOrder.jsp'>
-											<@input type='hidden' name='id_rss_feed' value='${active_feed.id}' />
-											<@inputGroup>
-												<@select id='new_order' name='new_order'>
-													<#list 1..nb_active_rss_feed?number as i>
-														<option <#if active_feed.id == i>selected="selected"</#if> value="${i}" >${i}</option>
-													</#list>
-												</@select>
-												<@inputGroupItem>
-													<@button type='submit' title='#i18n{rss.manage_rss_feeds.active.labelModifyOrder}' buttonIcon='check' hideTitle=['all'] />
-												</@inputGroupItem>
-											</@inputGroup>
-										</@tform>
-									</@td>
-									<@td>
-										<@aButton href='jsp/admin/plugins/rss/ModifyRssFeed.jsp?id_rss_feed=${active_feed.id}&rss_feed_is_active=true'  title='#i18n{rss.manage_rss_file.active.labelStateUp}' buttonIcon='pencil' size='sm' />
-										<@aButton href='jsp/admin/plugins/rss/DoConfirmActivateRssFeed.jsp?id_rss_feed=${active_feed.id}&rss_feed_is_active=true' title='#i18n{rss.manage_rss_feeds.labelDeactivate} ${active_feed.name}' hideTitle=['all'] buttonIcon='times' color='warning' size='sm' />
-										<@aButton href='jsp/admin/plugins/rss/DoConfirmDeleteRssFeed.jsp?id_rss_feed=${active_feed.id}&rss_feed_is_active=true' title='#i18n{rss.manage_rss_feeds.labelDelete}' hideTitle=['all'] buttonIcon='trash' color='danger' size='sm' />
-									</@td>
-								</@tr>
-							</#list>
-							</@tableBody>
-						</@table>
-						<#else>
-							<@alert color='warning'>
-								Pas de flux
-							</@alert>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.manage_rss_feeds.pageTitle}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=createRssFeed' title='#i18n{rss.manage_rss_feeds.buttonAddFeed}' hideTitle=['xs','sm'] buttonIcon='plus' />
+			<#if permission_advanced_parameter>
+				<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=manageAdvancedParameters' title='#i18n{rss.manage_rss.labelAdvancedParameters}' hideTitle=['xs','sm'] buttonIcon='settings' color='light' />
+			</#if>
+		</@pageHeader>
+		<@messages infos=infos![] errors=errors![] warnings=warnings![] />
+		<@btnGroup class='mb-3'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=manageRssFeeds&rss_feed_is_active=true' title='#i18n{rss.manage_rss_feeds.active.tableLabel}' color=is_active_list?then('primary','light') />
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=manageRssFeeds&rss_feed_is_active=false' title='#i18n{rss.manage_rss_feeds.inactive.tableLabel}' color=is_active_list?then('light','primary') />
+		</@btnGroup>
+		<#if rss_feeds_list?has_content>
+			<@manageFeature>
+			<#list rss_feeds_list as feed>
+				<@manageFeatureItem>
+					<@manageFeatureItemColumn auto=true flex=false>
+						<#if is_active_list>
+							<#if feed.lastFetchStatus != 1>
+								<@tag color='success' title='#i18n{rss.manage_rss_feeds.labelStateUp}' tagIcon='check' />
+							<#else>
+								<@tag color='danger' title='#i18n{rss.manage_rss_feeds.labelConnectionError}' tagIcon='alert-triangle' />
+							</#if>
 						</#if>
-					</@columns>
-					
-					<@columns md=5>
-						<!-- End Active RSS box -->
-						<!-- Inactive RSS box -->
-						<h4>#i18n{rss.manage_rss_feeds.inactive.tableLabel}</h4>
-						<@paginationAdmin paginator=paginator_inactive combo=0 nb_items_per_page=nb_items_per_page_inactive showcount=0 />
-						<#if inactive_rss_feeds_list?size &gt; 0>
-						<@table summary='#i18n{rss.manage_rss_feeds.tableSummary}'>
-							<@tr>
-								<@th>#i18n{rss.manage_rss_feeds.columnTitleName}</@th>
-								<@th>#i18n{rss.manage_rss_feeds.columnTitleUrl}</@th>
-								<@th>#i18n{rss.manage_rss_feeds.columnTitleActions}</@th>
-							</@tr>
-							<#list inactive_rss_feeds_list as inactive_feed >
-							<@tr>
-								<@td>${inactive_feed.name}</@td>
-								<@td><strong><@link href='${inactive_feed.url}' target='rss' title='${inactive_feed.name}'>${inactive_feed.url}</@link></strong></@td>
-								<@td>
-									<@aButton href='jsp/admin/plugins/rss/ModifyRssFeed.jsp?id_rss_feed=${inactive_feed.id}&rss_feed_is_active=false' title='' hideTitle=['all'] buttonIcon='pencil' size='sm' />
-									<@aButton href='jsp/admin/plugins/rss/DoActivateRssFeed.jsp?id_rss_feed=${inactive_feed.id}&rss_feed_is_active=false' title='#i18n{rss.manage_rss_feeds.labelActivate} ${inactive_feed.name}' hideTitle=['all'] buttonIcon='check' color='success' size='sm' />
-									<@aButton href='jsp/admin/plugins/rss/DoConfirmDeleteRssFeed.jsp?id_rss_feed=${inactive_feed.id}&rss_feed_is_active=false' title='#i18n{rss.manage_rss_feeds.labelDelete}' hideTitle=['all'] buttonIcon='trash' color='danger' size='sm' />
-								</@td>
-							</@tr>
-							</#list>
-						</@table>
-						<#else>
-							<@alert color='warning'>
-								Pas de flux
-							</@alert>
+						<strong>${feed.name!}</strong>
+						<p class='mb-0'><@link href=feed.url! target='_blank' title=feed.name!>${feed.url!}</@link></p>
+						<#if is_active_list>
+							<#if feed.lastFetchDate??>
+								<p class='mb-0'><@icon style='calendar' /> #i18n{rss.manage_rss_feeds.active.columnTitleLastUpdate} <strong>${feed.lastFetchDate?string.medium_short}</strong></p>
+							</#if>
+							<p class='mb-0'>#i18n{rss.manage_rss_feeds.labelInclude} <code>${feed.includeTag!}</code></p>
 						</#if>
-
-					<!-- End Inactive RSS box -->
-					</@columns>
-				</@row>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+					</@manageFeatureItemColumn>
+					<#if is_active_list>
+					<@manageFeatureItemColumn>
+						<@tform method='post' action='jsp/admin/plugins/rss/ManageRssFeeds.jsp'>
+							<@input type='hidden' name='action' value='updateRssFeeds' />
+							<@input type='hidden' name='id_rss_feed' value='${feed.id}' />
+							<@inputGroup>
+								<@select id='new_order_${feed.id}' name='new_order' title='#i18n{rss.manage_rss_feeds.active.columnTitleChangeOrder}' default_value='${feed.id}' items=order_list />
+								<@button type='submit' title='#i18n{rss.manage_rss_feeds.active.labelModifyOrder}' buttonIcon='check' hideTitle=['all'] />
+							</@inputGroup>
+						</@tform>
+					</@manageFeatureItemColumn>
+					</#if>
+					<@manageFeatureItemColumn align='end'>
+						<#if is_active_list>
+						<@tform method='post' action='jsp/admin/plugins/rss/ManageRssFeeds.jsp' class='d-inline'>
+							<@input type='hidden' name='action' value='updateRssFeeds' />
+							<@input type='hidden' name='id_rss_feed' value='${feed.id}' />
+							<@input type='hidden' name='fetch' value='true' />
+							<@button type='submit' title='#i18n{rss.manage_rss_feeds.labelReload}' buttonIcon='refresh' hideTitle=['all'] color='light' />
+						</@tform>
+						</#if>
+						<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=modifyRssFeed&id_rss_feed=${feed.id}&rss_feed_is_active=${is_active_list?c}' title='#i18n{portal.util.labelModify}' hideTitle=['all'] buttonIcon='edit' />
+						<#if is_active_list>
+							<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=confirmActivateRssFeed&id_rss_feed=${feed.id}&rss_feed_is_active=true' title='#i18n{rss.manage_rss_feeds.labelDeactivate}' hideTitle=['all'] buttonIcon='player-pause' color='warning' />
+						<#else>
+							<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=confirmActivateRssFeed&id_rss_feed=${feed.id}&rss_feed_is_active=false' title='#i18n{rss.manage_rss_feeds.labelActivate}' hideTitle=['all'] buttonIcon='player-play' color='success' />
+						</#if>
+						<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp?view=confirmRemoveRssFeed&id_rss_feed=${feed.id}&rss_feed_is_active=${is_active_list?c}' title='#i18n{portal.util.labelDelete}' hideTitle=['all'] buttonIcon='trash' color='danger' />
+					</@manageFeatureItemColumn>
+				</@manageFeatureItem>
+			</#list>
+			</@manageFeature>
+			<@paginationAdmin paginator=paginator combo=0 />
+		<#else>
+			<@empty title='#i18n{portal.util.labelNoItem}' />
+		</#if>
+	</@pageColumn>
+</@pageContainer>

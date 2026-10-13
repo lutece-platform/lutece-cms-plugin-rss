@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.rss.web;
 
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.document.service.publishing.PublishingService;
 import fr.paris.lutece.plugins.rss.business.RssFeedHome;
 import fr.paris.lutece.plugins.rss.business.RssGeneratedFile;
@@ -41,41 +42,67 @@ import fr.paris.lutece.plugins.rss.service.RssGeneratorService;
 import fr.paris.lutece.plugins.rss.service.RssService;
 import fr.paris.lutece.portal.business.portlet.Portlet;
 import fr.paris.lutece.portal.business.rss.IResourceRss;
+import fr.paris.lutece.portal.service.admin.AccessDeniedException;
 import fr.paris.lutece.portal.service.message.AdminMessage;
 import fr.paris.lutece.portal.service.message.AdminMessageService;
+import fr.paris.lutece.portal.service.plugin.Plugin;
+import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.portlet.PortletService;
-import fr.paris.lutece.portal.service.template.AppTemplateService;
-import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPathService;
-import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
-import fr.paris.lutece.portal.web.admin.PluginAdminPageJspBean;
+import fr.paris.lutece.portal.util.mvc.admin.MVCAdminJspBean;
+import fr.paris.lutece.portal.util.mvc.admin.annotations.Controller;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.Action;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
+import fr.paris.lutece.portal.web.cdi.mvc.Models;
 import fr.paris.lutece.portal.web.constants.Messages;
+import fr.paris.lutece.portal.web.util.IPager;
+import fr.paris.lutece.portal.web.util.Pager;
 import fr.paris.lutece.util.ReferenceList;
 import fr.paris.lutece.util.filesystem.UploadUtil;
-import fr.paris.lutece.util.html.HtmlTemplate;
-import fr.paris.lutece.util.html.Paginator;
+import fr.paris.lutece.util.url.UrlItem;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
- * This class provides the user interface to manage pushrss objects
- * features ( publishing, unselecting, ... )
+ * This class provides the user interface to manage the generated rss files
  */
-public class RssJspBean extends PluginAdminPageJspBean
+@RequestScoped
+@Named
+@Controller( controllerJsp = "ManageRssFiles.jsp", controllerPath = "jsp/admin/plugins/rss/", right = RssJspBean.RIGHT_RSS_MANAGEMENT, securityTokenEnabled = true )
+public class RssJspBean extends MVCAdminJspBean
 {
-    /////////////////////////////////////////////////////////////////////////////////
-    // Constants
     public static final String RIGHT_RSS_MANAGEMENT = "RSS_MANAGEMENT";
+
+    private static final long serialVersionUID = 1L;
+
+    private static final String VIEW_MANAGE_RSS_FILES = "manageRssFiles";
+    private static final String VIEW_CREATE_RSS_FILE = "createRssFile";
+    private static final String VIEW_CREATE_RSS_FILE_PORTLET = "createRssFilePortlet";
+    private static final String VIEW_CREATE_RSS_FILE_RESOURCE = "createRssFileResource";
+    private static final String VIEW_MODIFY_RSS_FILE = "modifyRssFile";
+    private static final String VIEW_CONFIRM_REMOVE_RSS_FILE = "confirmRemoveRssFile";
+
+    private static final String ACTION_CREATE_RSS_FILE_PORTLET = "createRssFilePortlet";
+    private static final String ACTION_CREATE_RSS_FILE_RESOURCE = "createRssFileResource";
+    private static final String ACTION_MODIFY_RSS_FILE = "modifyRssFile";
+    private static final String ACTION_REMOVE_RSS_FILE = "removeRssFile";
+
     private static final String PARAMETER_PUSH_RSS_PORTLET_ID = "rss_portlet_id";
     private static final String PARAMETER_PUSH_RSS_ID = "rss_id";
     private static final String PARAMETER_PUSH_RSS_NAME = "rss_name";
@@ -83,50 +110,41 @@ public class RssJspBean extends PluginAdminPageJspBean
     private static final String PARAMETER_PUSH_RSS_ENCODING = "rss_encoding";
     private static final String PARAMETER_PUSH_RSS_FEED_TYPE = "rss_feed_type";
     private static final String PARAMETER_PUSH_RSS_DESCRIPTION = "rss_description";
-    private static final String PARAMETER_RSS_TYPE = "rss_type";
     private static final String PARAMETER_RSS_RESOURCE_KEY = "rss_resource_key";
-    private static final String PARAMETER_PAGE_INDEX = "page_index";
-    private static final String PARAMETER_ITEMS_PER_PAGE = "items_per_page";
     private static final String PARAMETER_WORKGROUP_KEY = "workgroup_key";
-    private static final String PARAMETER_CANCEL = "cancel";
     private static final String PARAMETER_APPLY = "apply";
+
     private static final String TEMPLATE_MANAGE_RSS_FILE = "admin/plugins/rss/manage_rss_file.html";
     private static final String TEMPLATE_CREATE_PUSH_RSS_FILE = "admin/plugins/rss/create_rss_file.html";
     private static final String TEMPLATE_CREATE_PUSH_RSS_FILE_PORTLET = "admin/plugins/rss/create_rss_file_portlet.html";
     private static final String TEMPLATE_CREATE_PUSH_RSS_FILE_RESOURCE = "admin/plugins/rss/create_rss_file_resource.html";
     private static final String TEMPLATE_MODIFY_PUSH_RSS_FILE_PORTLET = "admin/plugins/rss/modify_rss_file_portlet.html";
     private static final String TEMPLATE_MODIFY_PUSH_RSS_FILE_RESOURCE = "admin/plugins/rss/modify_rss_file_resource.html";
+
     private static final String MARK_RSS_FILE = "rssFile";
     private static final String MARK_PUSH_RSS_LIST = "rss_files_list";
     private static final String MARK_PUSH_RSS_URL = "rss_file_url";
     private static final String MARK_PORTLET_LIST = "portlet_list";
     private static final String MARK_RESOURCE_LIST = "resource_list";
-    private static final String MARK_PAGINATOR = "paginator";
-    private static final String MARK_NB_ITEMS_PER_PAGE = "nb_items_per_page";
     private static final String MARK_USER_WORKGROUP_LIST = "user_workgroup_list";
     private static final String MARK_ENCODING_LIST = "encoding_list";
     private static final String MARK_FEED_TYPE_LIST = "feed_type_list";
     private static final String MARK_WORKGROUP_SELECTED = "selected_workgroup";
-    private static final String MARK_RSS_TYPE = "rss_type";
     private static final String MARK_RSS_NAME = "rss_name";
     private static final String MARK_RSS_MAX_ITEMS = "rss_max_items";
     private static final String MARK_RSS_ENCODING = "rss_encoding";
     private static final String MARK_RSS_FEED_TYPE = "rss_feed_type";
     private static final String MARK_RESOURCE_RSS = "resource_rss";
     private static final String MARK_RESOURCE_RSS_CONFIG = "resource_rss_config";
+
     private static final int STATE_OK = 0;
     private static final int STATE_PORTLET_MISSING = 1;
-    private static final String PROPERTY_PATH_PLUGIN_WAREHOUSE = "path.plugins.warehouse";
-    private static final String PROPERTY_FILE_TYPE = "rss.file.type";
-    private static final String PROPERTY_NAME_MAX_LENGTH = "rss.name.max.length";
+
     private static final String PROPERTY_PAGE_TITLE_FILES = "rss.manage_rss_file.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_CREATE = "rss.create_rss_file.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_MODIFY = "rss.modify_rss_file.pageTitle";
     private static final String PROPERTY_RSS_PER_PAGE = "rss.rssPerPage";
-    private static final String PROPERTY_RSS_ENCODING = "rss.encoding";
-    private static final String PROPERTY_RSS_FEED_TYPE = "rss.feedType";
 
-    //Messages
     private static final String MESSAGE_FILENAME_TOO_LONG = "rss.message.filenameTooLong";
     private static final String MESSAGE_FILENAME_ALREADY_EXISTS = "rss.message.filenameAlreadyExists";
     private static final String MESSAGE_NO_DOCUMENT_PORTLET = "rss.message.NoDocumentPortlet";
@@ -136,862 +154,307 @@ public class RssJspBean extends PluginAdminPageJspBean
     private static final String MESSAGE_MAX_ITEMS = "rss.message.maxItems";
     private static final String MESSAGE_NO_ENCODING = "rss.message.noEncoding";
     private static final String MESSAGE_NO_FEED_TYPE = "rss.message.noFeedType";
+    private static final String MESSAGE_RSS_FILE_NOT_FOUND = "rss.message.rssFileNotFound";
+    private static final String MESSAGE_ACCESS_DENIED = "rss.message.accesDenied";
 
-    //JSPs
-    private static final String JSP_CREATE_RESOURCE_RSS_FILE = "jsp/admin/plugins/rss/DoCreateRssFile.jsp";
-    private static final String JSP_MODIFY_RESOURCE_RSS_FILE = "jsp/admin/plugins/rss/ModifyRssFile.jsp";
-    private static final String JSP_MANAGE_RSS_FILE = "jsp/admin/plugins/rss/ManageRssFiles.jsp";
-    private static final String JSP_DELETE_RSS_FILE = "jsp/admin/plugins/rss/DoDeleteRssFile.jsp";
     private static final String REGEX_ID = "^[\\d]+$";
     private static final String WORKGROUP_ALL = "all";
-    private static final String STRING_EMPTY = "";
-    private static final String PORTLET = "portlet";
-    private static final String RESOURCE_RSS = "resourceRss";
-    private int _nItemsPerPage;
-    private String _strCurrentPageIndex;
+
+    @Inject
+    @Pager( name = "rss.files", listBookmark = MARK_PUSH_RSS_LIST, defaultItemsPerPage = PROPERTY_RSS_PER_PAGE )
+    private IPager<RssGeneratedFile, Void> _pager;
+
+    @Inject
+    private RssService _rssService;
+
+    @Inject
+    @ConfigProperty( name = "rss.name.max.length", defaultValue = "60" )
+    private int _nNameMaxLength;
+
+    @Inject
+    @ConfigProperty( name = "rss.file.type", defaultValue = ".xml" )
+    private String _strFileType;
+
+    @Inject
+    @ConfigProperty( name = "rss.encoding", defaultValue = "UTF-8" )
+    private String _strEncodings;
+
+    @Inject
+    @ConfigProperty( name = "rss.feedType", defaultValue = "rss_2.0" )
+    private String _strFeedTypes;
+
+    @Inject
+    @ConfigProperty( name = "rss.storage.directory.name", defaultValue = "rss" )
+    private String _strStorageDirectoryName;
+
+    @Inject
+    @ConfigProperty( name = "path.plugins.warehouse", defaultValue = "/plugins" )
+    private String _strPluginWarehouse;
+
+    @Inject
+    private PublishingService _publishingService;
+
+    @Inject
+    private PortletService _portletService;
 
     /**
-     * Returns  rss files management form
+     * Returns the plugin of the rss files, read by name since the request carries no plugin name
      *
-     * @param request The Http request
-     * @return Html form
+     * @return the plugin
      */
-    public String getManageRssFile( HttpServletRequest request ) //Implement paginator
+    @Override
+    public Plugin getPlugin( )
     {
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_FILES );
-        _nItemsPerPage = getItemsPerPage( request );
-        _strCurrentPageIndex = getPageIndex( request );
+        return PluginService.getPlugin( RssService.PLUGIN_NAME );
+    }
 
-        List<RssGeneratedFile> listRssFileList = RssGeneratedFileHome.getRssFileList(  );
-        listRssFileList = (List<RssGeneratedFile>) AdminWorkgroupService.getAuthorizedCollection( listRssFileList,
-                getUser(  ) );
-
-        Paginator paginator = new Paginator( listRssFileList, _nItemsPerPage, getHomeUrl( request ),
-                PARAMETER_PAGE_INDEX, _strCurrentPageIndex );
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
-        model.put( MARK_PAGINATOR, paginator );
-        model.put( MARK_NB_ITEMS_PER_PAGE, "" + _nItemsPerPage );
-        model.put( MARK_PUSH_RSS_LIST, paginator.getPageItems(  ) );
+    /**
+     * Returns the list of the rss files
+     *
+     * @param model
+     *            the model
+     * @param request
+     *            The Http request
+     * @return the page
+     */
+    @View( value = VIEW_MANAGE_RSS_FILES, defaultView = true )
+    public String getManageRssFiles( Models model, HttpServletRequest request )
+    {
+        List<RssGeneratedFile> listRssFile = new ArrayList<>( AdminWorkgroupService.getAuthorizedCollection( RssGeneratedFileHome.getRssFileList( ),
+                (User) getUser( ) ) );
+        _pager.withBaseUrl( getViewUrl( VIEW_MANAGE_RSS_FILES ) ).withListItem( listRssFile ).populateModels( request, model, getLocale( ) );
         model.put( MARK_PUSH_RSS_URL, getRssFileUrl( "", request ) );
 
-        HtmlTemplate templateList = AppTemplateService.getTemplate( TEMPLATE_MANAGE_RSS_FILE, getLocale(  ), model );
-
-        return getAdminPage( templateList.getHtml(  ) );
+        return getPage( PROPERTY_PAGE_TITLE_FILES, TEMPLATE_MANAGE_RSS_FILE, model );
     }
 
     /**
-     * Gets the available feed types
-     * @return the feed types
-     */
-    private List<String> getFeedTypes(  )
-    {
-        return Arrays.asList( AppPropertiesService.getProperty( PROPERTY_RSS_FEED_TYPE ).split( "," ) );
-    }
-
-    /**
-     * Gets the available encodings
-     * @return the encodings
-     */
-    private List<String> getEncodings(  )
-    {
-        return Arrays.asList( AppPropertiesService.getProperty( PROPERTY_RSS_ENCODING ).split( "," ) );
-    }
-
-    /**
-     * Modification of a push RSS file
+     * Returns the choice between a rss file of a portlet and a rss file of a resource
      *
-     * @return The Jsp URL of the process result
-     * @param request requete Http
+     * @param model
+     *            the model
+     * @param request
+     *            The Http request
+     * @return Html form
      */
-    public String doModifyRssFilePortlet( HttpServletRequest request )
+    @View( VIEW_CREATE_RSS_FILE )
+    public String getCreateRssFile( Models model, HttpServletRequest request )
     {
-        // Recovery of parameters processing
-        if ( request.getParameter( PARAMETER_CANCEL ) != null )
-        {
-            return getHomeUrl( request );
-        }
+        model.put( MARK_RESOURCE_LIST, _rssService.getRefListResourceRssType( getLocale( ) ) );
 
-        String strRssFileId = request.getParameter( PARAMETER_PUSH_RSS_ID );
-        String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-        String strMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
-        String strEncoding = request.getParameter( PARAMETER_PUSH_RSS_ENCODING );
-        String strFeedType = request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE );
-
-        int nRssFileId = Integer.parseInt( strRssFileId );
-        String strPortletId = request.getParameter( PARAMETER_PUSH_RSS_PORTLET_ID );
-
-        if ( ( strPortletId == null ) || !strPortletId.matches( REGEX_ID ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_DOCUMENT_PORTLET, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( !getFeedTypes(  ).contains( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strEncoding ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_ENCODING, AdminMessage.TYPE_STOP );
-        }
-
-        int nMaxItems;
-
-        if ( StringUtils.isBlank( strMaxItems ) )
-        {
-            nMaxItems = 0;
-        }
-        else
-        {
-            try
-            {
-                nMaxItems = Integer.parseInt( strMaxItems );
-            }
-            catch ( NumberFormatException nfe )
-            {
-                AppLogService.error( nfe.getMessage(  ), nfe );
-
-                return AdminMessageService.getMessageUrl( request, MESSAGE_MAX_ITEMS, AdminMessage.TYPE_STOP );
-            }
-        }
-
-        int nPortletId = Integer.parseInt( strPortletId );
-        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
-        String strRssFileDescription = request.getParameter( PARAMETER_PUSH_RSS_DESCRIPTION );
-
-        RssGeneratedFile rssFile = new RssGeneratedFile(  );
-        rssFile.setPortletId( nPortletId );
-        rssFile.setId( nRssFileId );
-        rssFile.setName( strRssFileName );
-        rssFile.setState( STATE_OK );
-        rssFile.setWorkgroup( strWorkgroup );
-        rssFile.setDescription( strRssFileDescription );
-        rssFile.setMaxItems( nMaxItems );
-        rssFile.setFeedType( strFeedType );
-        rssFile.setEncoding( strEncoding );
-
-        // Update the database with the new push RSS file
-        RssGeneratedFileHome.update( rssFile );
-
-        // Check if the portlet does exist
-        if ( !RssGeneratedFileHome.checkRssFilePortlet( nPortletId ) )
-        {
-            rssFile.setState( STATE_PORTLET_MISSING );
-        }
-
-        // Format the new file name
-        strRssFileName = UploadUtil.cleanFileName( strRssFileName );
-
-        // Call the create xml document method
-        String strRssDocument = RssGeneratorService.createRssDocument( nPortletId, rssFile.getDescription(  ),
-                rssFile.getEncoding(  ), rssFile.getFeedType(  ), rssFile.getMaxItems(  ), request );
-
-        // Call the create file method
-        RssGeneratorService.createFileRss( strRssFileName, strRssDocument );
-
-        // Update the push Rss object in the database
-        RssGeneratedFileHome.update( rssFile );
-
-        // Display the page of publishing
-        return getHomeUrl( request );
+        return getPage( PROPERTY_PAGE_TITLE_CREATE, TEMPLATE_CREATE_PUSH_RSS_FILE, model );
     }
 
     /**
-     * Modification of a push RSS file
+     * Returns the creation form of a rss file of a portlet
      *
-     * @return The Jsp URL of the process result
-     * @param request requete Http
+     * @param model
+     *            the model
+     * @param request
+     *            The Http request
+     * @return Html form
      */
-    public String doModifyRssFileResource( HttpServletRequest request )
+    @View( VIEW_CREATE_RSS_FILE_PORTLET )
+    public String getCreateRssFilePortlet( Models model, HttpServletRequest request )
     {
-        if ( request.getParameter( PARAMETER_CANCEL ) != null )
+        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( getUser( ), getLocale( ) );
+
+        model.put( MARK_PORTLET_LIST, getPortletList( ) );
+        model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
+        model.put( MARK_RSS_MAX_ITEMS, StringUtils.EMPTY );
+        model.put( MARK_ENCODING_LIST, getRefList( _strEncodings ) );
+        model.put( MARK_RSS_ENCODING, StringUtils.EMPTY );
+        model.put( MARK_FEED_TYPE_LIST, getRefList( _strFeedTypes ) );
+        model.put( MARK_RSS_FEED_TYPE, StringUtils.EMPTY );
+
+        if ( !refListWorkGroups.isEmpty( ) )
         {
-            return getHomeUrl( request );
+            model.put( MARK_WORKGROUP_SELECTED, refListWorkGroups.get( 0 ).getCode( ) );
         }
 
-        // Recovery of parameters processing
-        String strRssFileId = request.getParameter( PARAMETER_PUSH_RSS_ID );
-
-        //String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-        int nRssFileId = Integer.parseInt( strRssFileId );
-
-        String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
-        String strMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
-        String strEncoding = request.getParameter( PARAMETER_PUSH_RSS_ENCODING );
-        String strFeedType = request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE );
-
-        String strResourceRssKey = request.getParameter( PARAMETER_RSS_RESOURCE_KEY );
-        IResourceRss resourceRss = RssService.getInstance(  ).getResourceRssInstance( strResourceRssKey, getLocale(  ) );
-
-        if ( request.getParameter( PARAMETER_APPLY ) != null )
-        {
-            return getJspModifyRssResource( request, strRssFileId, request.getParameter( PARAMETER_PUSH_RSS_NAME ),
-                request.getParameter( PARAMETER_WORKGROUP_KEY ), request.getParameter( PARAMETER_RSS_TYPE ),
-                request.getParameter( PARAMETER_RSS_RESOURCE_KEY ), resourceRss.getParameterToApply( request ) );
-        }
-
-        String strNameMaxLength = AppPropertiesService.getProperty( PROPERTY_NAME_MAX_LENGTH );
-
-        if ( strRssFileName.length(  ) > Integer.parseInt( strNameMaxLength ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_FILENAME_TOO_LONG, AdminMessage.TYPE_STOP );
-        }
-
-        // Format the new file name
-        strRssFileName = UploadUtil.cleanFileName( strRssFileName );
-
-        // Check the type of the name
-        String strFileType = AppPropertiesService.getProperty( PROPERTY_FILE_TYPE );
-
-        if ( !strRssFileName.toLowerCase(  ).endsWith( strFileType ) )
-        {
-            strRssFileName = strRssFileName + strFileType;
-        }
-
-        if ( ( resourceRss != null ) && ( request.getParameter( PARAMETER_CANCEL ) == null ) )
-        {
-            String strError = resourceRss.doValidateConfigForm( request, getLocale(  ) );
-
-            if ( strError != null )
-            {
-                return strError;
-            }
-        }
-
-        if ( StringUtils.isBlank( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( !getFeedTypes(  ).contains( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strEncoding ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_ENCODING, AdminMessage.TYPE_STOP );
-        }
-
-        int nMaxItems;
-
-        if ( StringUtils.isBlank( strMaxItems ) )
-        {
-            // set to 0 -- no limit
-            nMaxItems = 0;
-        }
-        else
-        {
-            try
-            {
-                nMaxItems = Integer.parseInt( strMaxItems );
-            }
-            catch ( NumberFormatException nfe )
-            {
-                AppLogService.error( nfe.getMessage(  ), nfe );
-
-                return AdminMessageService.getMessageUrl( request, MESSAGE_MAX_ITEMS, AdminMessage.TYPE_STOP );
-            }
-        }
-
-        // String strRssFileDescription = request.getParameter( PARAMETER_PUSH_RSS_DESCRIPTION );
-        RssGeneratedFile rssFile = new RssGeneratedFile(  );
-        rssFile.setId( nRssFileId );
-        rssFile.setName( strRssFileName );
-        rssFile.setState( STATE_OK );
-        rssFile.setWorkgroup( strWorkgroup );
-        rssFile.setDescription( resourceRss.getDescription(  ) );
-        rssFile.setTypeResourceRss( resourceRss.getResourceRssType(  ).getKey(  ) );
-        rssFile.setMaxItems( nMaxItems );
-        rssFile.setFeedType( strFeedType );
-        rssFile.setEncoding( strEncoding );
-
-        resourceRss.setId( rssFile.getId(  ) );
-        resourceRss.setEncoding( strEncoding );
-        resourceRss.setFeedType( strFeedType );
-
-        // Check if the resource does exist
-        if ( !resourceRss.checkResource(  ) )
-        {
-            rssFile.setState( STATE_PORTLET_MISSING );
-        }
-
-        // Update the database with the new push RSS file
-        RssGeneratedFileHome.update( rssFile );
-
-        //sauvegarde du coté directory
-        resourceRss.doUpdateConfig( request, getLocale(  ) );
-
-        // Check if a RSS file exists for this portlet
-        //String strRssDocument = RssGeneratorService.createRssDocument( nPortletId, strRssFileDescription );
-        String strRss = FeedUtil.getFeed( resourceRss );
-
-        // Call the create file method
-        RssGeneratorService.createFileRss( strRssFileName, strRss );
-
-        // Display the page of publishing
-        return getHomeUrl( request );
+        return getPage( PROPERTY_PAGE_TITLE_CREATE, TEMPLATE_CREATE_PUSH_RSS_FILE_PORTLET, model );
     }
 
     /**
-     * Creates the push RSS file corresponding to the given portlet
+     * Creates the rss file of a portlet
      *
-     * @return The Jsp URL of the process result
-     * @param request requete Http
+     * @param request
+     *            The Http request
+     * @return The url of the list
      */
-    public String doCreateRssFile( HttpServletRequest request )
-    {
-        if ( request.getParameter( PARAMETER_CANCEL ) != null )
-        {
-            return getHomeUrl( request );
-        }
-
-        String strRssType = request.getParameter( PARAMETER_RSS_TYPE );
-        String strRssResourceName = request.getParameter( PARAMETER_RSS_RESOURCE_KEY );
-
-        if ( ( strRssType == null ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_DOCUMENT_PORTLET, AdminMessage.TYPE_STOP );
-        }
-
-        if ( ( strRssType.equals( PORTLET ) ) )
-        {
-            return getCreateRssFilePortlet( request );
-        }
-        else if ( strRssType.equals( RESOURCE_RSS ) )
-        {
-            if ( ( strRssResourceName == null ) )
-            {
-                return AdminMessageService.getMessageUrl( request, MESSAGE_NO_DOCUMENT_PORTLET, AdminMessage.TYPE_STOP );
-            }
-            else
-            {
-                IResourceRss resourceRss = RssService.getInstance(  )
-                                                     .getResourceRssInstance( strRssResourceName, getLocale(  ) );
-
-                if ( resourceRss.contentResourceRss(  ) )
-                {
-                    HashMap<String, Object> model = new HashMap<String, Object>(  );
-
-                    if ( request.getParameter( PARAMETER_PUSH_RSS_NAME ) != null )
-                    {
-                        model.put( MARK_RSS_NAME, request.getParameter( PARAMETER_PUSH_RSS_NAME ) );
-                    }
-                    else
-                    {
-                        model.put( MARK_RSS_NAME, STRING_EMPTY );
-                    }
-
-                    if ( request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS ) != null )
-                    {
-                        model.put( MARK_RSS_MAX_ITEMS, request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS ) );
-                    }
-                    else
-                    {
-                        model.put( MARK_RSS_MAX_ITEMS, STRING_EMPTY );
-                    }
-
-                    if ( request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS ) != null )
-                    {
-                        model.put( MARK_RSS_MAX_ITEMS, request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS ) );
-                    }
-                    else
-                    {
-                        model.put( MARK_RSS_MAX_ITEMS, STRING_EMPTY );
-                    }
-
-                    if ( request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE ) != null )
-                    {
-                        model.put( MARK_RSS_FEED_TYPE, request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE ) );
-                    }
-                    else
-                    {
-                        model.put( MARK_RSS_FEED_TYPE, STRING_EMPTY );
-                    }
-
-                    if ( request.getParameter( PARAMETER_PUSH_RSS_ENCODING ) != null )
-                    {
-                        model.put( MARK_RSS_ENCODING, request.getParameter( PARAMETER_PUSH_RSS_ENCODING ) );
-                    }
-                    else
-                    {
-                        model.put( MARK_RSS_ENCODING, STRING_EMPTY );
-                    }
-
-                    ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( getUser(  ),
-                            getLocale(  ) );
-
-                    model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
-
-                    ReferenceList refListEncoding = getRefListEncoding(  );
-
-                    model.put( MARK_ENCODING_LIST, refListEncoding );
-
-                    ReferenceList refListFeedType = getRefListFeedType(  );
-                    model.put( MARK_FEED_TYPE_LIST, refListFeedType );
-
-                    //RSS-24 : the first workgroup will be selected by default
-                    if ( !refListWorkGroups.isEmpty(  ) )
-                    {
-                        if ( request.getParameter( PARAMETER_WORKGROUP_KEY ) != null )
-                        {
-                            model.put( MARK_WORKGROUP_SELECTED, request.getParameter( PARAMETER_WORKGROUP_KEY ) );
-                        }
-                        else
-                        {
-                            model.put( MARK_WORKGROUP_SELECTED, WORKGROUP_ALL );
-                        }
-                    }
-
-                    model.put( MARK_RSS_TYPE, RESOURCE_RSS );
-                    model.put( MARK_RESOURCE_RSS, resourceRss.getResourceRssType(  ) );
-                    model.put( MARK_RESOURCE_RSS_CONFIG,
-                        resourceRss.getDisplayCreateConfigForm( request, getLocale(  ) ) );
-
-                    setPageTitleProperty( PROPERTY_PAGE_TITLE_CREATE );
-
-                    HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CREATE_PUSH_RSS_FILE_RESOURCE,
-                            getLocale(  ), model );
-
-                    return getAdminPage( template.getHtml(  ) );
-                }
-                else
-                {
-                    return AdminMessageService.getMessageUrl( request, MESSAGE_RESOURCE, AdminMessage.TYPE_STOP );
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Builds the reference list of supported encoding
-     * @return the ReferenceList
-     */
-    private ReferenceList getRefListEncoding(  )
-    {
-        List<String> listEncodings = getEncodings(  );
-        ReferenceList refList = new ReferenceList(  );
-
-        // ut8 will be the default one
-        for ( String strEncoding : listEncodings )
-        {
-            refList.addItem( strEncoding, strEncoding );
-        }
-
-        return refList;
-    }
-
-    /**
-     * Builds the reference list of Feed types
-     * @return the ReferenceList
-     */
-    private ReferenceList getRefListFeedType(  )
-    {
-        List<String> listFeedType = getFeedTypes(  );
-        ReferenceList refList = new ReferenceList(  );
-
-        for ( String strFeedType : listFeedType )
-        {
-            refList.addItem( strFeedType, strFeedType );
-        }
-
-        return refList;
-    }
-
-    /**
-     * Creates the push RSS file corresponding to the given portlet
-     *
-     * @return The Jsp URL of the process result
-     * @param request requete Http
-     */
+    @Action( ACTION_CREATE_RSS_FILE_PORTLET )
     public String doCreateRssFilePortlet( HttpServletRequest request )
     {
-        if ( request.getParameter( PARAMETER_CANCEL ) != null )
-        {
-            return getHomeUrl( request );
-        }
-
         String strPortletId = request.getParameter( PARAMETER_PUSH_RSS_PORTLET_ID );
         String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
         String strRssFileDescription = request.getParameter( PARAMETER_PUSH_RSS_DESCRIPTION );
-        String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-        String strRssMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
-        String strFeedType = request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE );
-        String strEncoding = request.getParameter( PARAMETER_PUSH_RSS_ENCODING );
+        String strError = null;
 
-        if ( ( strPortletId == null ) || !strPortletId.matches( REGEX_ID ) )
+        if ( ( strPortletId == null ) || !strPortletId.matches( REGEX_ID ) || ( getPortletList( ).toMap( ).get( strPortletId ) == null ) )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_DOCUMENT_PORTLET, AdminMessage.TYPE_STOP );
+            strError = MESSAGE_NO_DOCUMENT_PORTLET;
         }
-
-        int nPortletId = Integer.parseInt( strPortletId );
-
-        //Mandatory fields
-        if ( request.getParameter( PARAMETER_PUSH_RSS_NAME ).equals( "" ) ||
-                request.getParameter( PARAMETER_PUSH_RSS_DESCRIPTION ).equals( "" ) )
+        else if ( StringUtils.isBlank( strRssFileName ) || StringUtils.isBlank( strRssFileDescription ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
-        }
-
-        // Check the file name length
-        String strNameMaxLength = AppPropertiesService.getProperty( PROPERTY_NAME_MAX_LENGTH );
-
-        if ( strRssFileName.length(  ) > Integer.parseInt( strNameMaxLength ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_FILENAME_TOO_LONG, AdminMessage.TYPE_STOP );
-        }
-
-        // Format the new file name
-        strRssFileName = UploadUtil.cleanFileName( strRssFileName );
-
-        // Check the type of the name
-        String strFileType = AppPropertiesService.getProperty( PROPERTY_FILE_TYPE );
-
-        if ( !strRssFileName.toLowerCase(  ).endsWith( strFileType ) )
-        {
-            strRssFileName = strRssFileName + strFileType;
-        }
-
-        // Verifies whether the file's name exists
-        if ( RssGeneratedFileHome.checkRssFileFileName( strRssFileName ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_FILENAME_ALREADY_EXISTS, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( !getFeedTypes(  ).contains( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strEncoding ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_ENCODING, AdminMessage.TYPE_STOP );
-        }
-
-        int nMaxItems;
-
-        if ( StringUtils.isBlank( strRssMaxItems ) )
-        {
-            // set to 0 -- no limit
-            nMaxItems = 0;
+            strError = Messages.MANDATORY_FIELDS;
         }
         else
         {
-            try
-            {
-                nMaxItems = Integer.parseInt( strRssMaxItems );
-            }
-            catch ( NumberFormatException nfe )
-            {
-                AppLogService.error( nfe.getMessage(  ), nfe );
-
-                return AdminMessageService.getMessageUrl( request, MESSAGE_MAX_ITEMS, AdminMessage.TYPE_STOP );
-            }
+            strError = validateFileName( strRssFileName, true );
         }
 
-        // Check if a RSS file exists for this portlet
-        String strRssDocument = RssGeneratorService.createRssDocument( nPortletId, strRssFileDescription, strEncoding,
-                strFeedType, nMaxItems, request );
+        if ( strError == null )
+        {
+            strError = validateFeedFormat( request );
+        }
 
-        // Call the create file method
-        RssGeneratorService.createFileRss( strRssFileName, strRssDocument );
+        if ( strError != null )
+        {
+            addError( strError, getLocale( ) );
 
-        // Update the database with the new push RSS file
-        RssGeneratedFile rssFile = new RssGeneratedFile(  );
-        rssFile.setPortletId( nPortletId );
-        rssFile.setName( strRssFileName );
+            return redirectView( request, VIEW_CREATE_RSS_FILE_PORTLET );
+        }
+
+        RssGeneratedFile rssFile = new RssGeneratedFile( );
+        rssFile.setPortletId( Integer.parseInt( strPortletId ) );
+        rssFile.setName( getFileName( strRssFileName ) );
         rssFile.setState( STATE_OK );
         rssFile.setDescription( strRssFileDescription );
-        rssFile.setWorkgroup( strWorkgroup );
-        rssFile.setMaxItems( nMaxItems );
-        rssFile.setFeedType( strFeedType );
-        rssFile.setEncoding( strEncoding );
+        rssFile.setWorkgroup( request.getParameter( PARAMETER_WORKGROUP_KEY ) );
+        setFeedFormat( rssFile, request );
 
+        RssGeneratorService.createFileRss( rssFile.getName( ), RssGeneratorService.createRssDocument( rssFile.getPortletId( ), rssFile.getDescription( ),
+                rssFile.getEncoding( ), rssFile.getFeedType( ), rssFile.getMaxItems( ), request ) );
         RssGeneratedFileHome.create( rssFile );
 
-        return getHomeUrl( request );
+        return redirectView( request, VIEW_MANAGE_RSS_FILES );
     }
 
     /**
-     * Returns the creation form of a rss file
+     * Returns the creation form of a rss file of a resource
      *
-     * @param request The Http request
+     * @param model
+     *            the model
+     * @param request
+     *            The Http request
      * @return Html form
      */
-    public String getCreateRssFile( HttpServletRequest request )
+    @View( VIEW_CREATE_RSS_FILE_RESOURCE )
+    public String getCreateRssFileResource( Models model, HttpServletRequest request )
     {
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_CREATE );
+        IResourceRss resourceRss = _rssService.getResourceRssInstance( request.getParameter( PARAMETER_RSS_RESOURCE_KEY ), getLocale( ) );
 
-        ReferenceList referenceList = RssService.getInstance(  ).getRefListResourceRssType( getLocale(  ) );
-
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
-        model.put( MARK_RESOURCE_LIST, referenceList );
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CREATE_PUSH_RSS_FILE, getLocale(  ), model );
-
-        return getAdminPage( template.getHtml(  ) );
-    }
-
-    /**
-     * Returns the creation form of a rss file
-     *
-     * @param request The Http request
-     * @return Html form
-     */
-    public String getCreateRssFilePortlet( HttpServletRequest request )
-    {
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_CREATE );
-
-        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( getUser(  ), getLocale(  ) );
-
-        Collection<Portlet> listInvolvedPortlets = PublishingService.getInstance(  ).getPublishedPortlets(  );
-        //test authorization on all portlets
-        listInvolvedPortlets = PortletService.getInstance(  )
-                                             .getAuthorizedPortletCollection( listInvolvedPortlets, getUser(  ) );
-
-        ReferenceList referenceList = new ReferenceList(  );
-
-        for ( Portlet portlet : listInvolvedPortlets )
+        if ( resourceRss == null )
         {
-            referenceList.addItem( portlet.getId(  ), portlet.getName(  ) );
+            return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RESOURCE, AdminMessage.TYPE_STOP ) );
         }
 
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
-        model.put( MARK_PORTLET_LIST, referenceList );
+        if ( !resourceRss.contentResourceRss( ) )
+        {
+            return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RESOURCE, AdminMessage.TYPE_STOP ) );
+        }
+
+        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( getUser( ), getLocale( ) );
+
+        model.put( MARK_RSS_NAME, StringUtils.defaultString( request.getParameter( PARAMETER_PUSH_RSS_NAME ) ) );
+        model.put( MARK_RSS_MAX_ITEMS, StringUtils.defaultString( request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS ) ) );
+        model.put( MARK_RSS_FEED_TYPE, StringUtils.defaultString( request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE ) ) );
+        model.put( MARK_RSS_ENCODING, StringUtils.defaultString( request.getParameter( PARAMETER_PUSH_RSS_ENCODING ) ) );
         model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
+        model.put( MARK_ENCODING_LIST, getRefList( _strEncodings ) );
+        model.put( MARK_FEED_TYPE_LIST, getRefList( _strFeedTypes ) );
+        model.put( MARK_WORKGROUP_SELECTED, StringUtils.defaultIfEmpty( request.getParameter( PARAMETER_WORKGROUP_KEY ), WORKGROUP_ALL ) );
+        model.put( MARK_RESOURCE_RSS, resourceRss.getResourceRssType( ) );
+        model.put( MARK_RESOURCE_RSS_CONFIG, resourceRss.getDisplayCreateConfigForm( request, getLocale( ) ) );
 
-        ReferenceList refListEncoding = getRefListEncoding(  );
-
-        model.put( MARK_RSS_MAX_ITEMS, STRING_EMPTY );
-
-        model.put( MARK_ENCODING_LIST, refListEncoding );
-        model.put( MARK_RSS_ENCODING, STRING_EMPTY );
-
-        ReferenceList refListFeedType = getRefListFeedType(  );
-        model.put( MARK_FEED_TYPE_LIST, refListFeedType );
-        model.put( MARK_RSS_FEED_TYPE, STRING_EMPTY );
-
-        //RSS-24 : the first workgroup will be selected by default
-        if ( !refListWorkGroups.isEmpty(  ) )
-        {
-            model.put( MARK_WORKGROUP_SELECTED, refListWorkGroups.get( 0 ).getCode(  ) );
-        }
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CREATE_PUSH_RSS_FILE_PORTLET, getLocale(  ),
-                model );
-
-        return getAdminPage( template.getHtml(  ) );
+        return getPage( PROPERTY_PAGE_TITLE_CREATE, TEMPLATE_CREATE_PUSH_RSS_FILE_RESOURCE, model );
     }
 
     /**
-     * Returns the creation form of a rss file
+     * Creates the rss file of a resource, or applies the parameters of its configuration form
      *
-     * @param request The Http request
-     * @return Html form
+     * @param request
+     *            The Http request
+     * @return The url of the list, of the form or of the error
      */
+    @Action( ACTION_CREATE_RSS_FILE_RESOURCE )
     public String doCreateRssFileResource( HttpServletRequest request )
     {
-        if ( request.getParameter( PARAMETER_CANCEL ) != null )
+        String strResourceRssKey = request.getParameter( PARAMETER_RSS_RESOURCE_KEY );
+        IResourceRss resourceRss = _rssService.getResourceRssInstance( strResourceRssKey, getLocale( ) );
+
+        if ( resourceRss == null )
         {
-            return getHomeUrl( request );
+            addError( MESSAGE_RESOURCE, getLocale( ) );
+
+            return redirectView( request, VIEW_CREATE_RSS_FILE );
         }
 
-        String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
-        String strRssMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
-        String strEncoding = request.getParameter( PARAMETER_PUSH_RSS_ENCODING );
-        String strFeedType = request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE );
-
-        String strResourceRssKey = request.getParameter( PARAMETER_RSS_RESOURCE_KEY );
-        IResourceRss resourceRss = RssService.getInstance(  ).getResourceRssInstance( strResourceRssKey, getLocale(  ) );
+        Map<String, String> mapFormParameters = getResourceFormParameters( request, resourceRss );
 
         if ( request.getParameter( PARAMETER_APPLY ) != null )
         {
-            return getJspCreateRssResource( request, request.getParameter( PARAMETER_PUSH_RSS_NAME ),
-                request.getParameter( PARAMETER_WORKGROUP_KEY ), request.getParameter( PARAMETER_RSS_TYPE ),
-                request.getParameter( PARAMETER_RSS_RESOURCE_KEY ), resourceRss.getParameterToApply( request ) );
+            return redirect( request, VIEW_CREATE_RSS_FILE_RESOURCE, mapFormParameters );
         }
 
-        if ( strRssFileName.equals( "" ) )
+        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
+        String strError = StringUtils.isBlank( strRssFileName ) ? Messages.MANDATORY_FIELDS : validateFileName( strRssFileName, true );
+
+        if ( strError == null )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            strError = validateFeedFormat( request );
         }
 
-        String strNameMaxLength = AppPropertiesService.getProperty( PROPERTY_NAME_MAX_LENGTH );
-
-        if ( strRssFileName.length(  ) > Integer.parseInt( strNameMaxLength ) )
+        if ( strError != null )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_FILENAME_TOO_LONG, AdminMessage.TYPE_STOP );
+            addError( strError, getLocale( ) );
+
+            return redirect( request, VIEW_CREATE_RSS_FILE_RESOURCE, mapFormParameters );
         }
 
-        // Format the new file name
-        strRssFileName = UploadUtil.cleanFileName( strRssFileName );
+        String strConfigError = resourceRss.doValidateConfigForm( request, getLocale( ) );
 
-        // Check the type of the name
-        String strFileType = AppPropertiesService.getProperty( PROPERTY_FILE_TYPE );
-
-        if ( !strRssFileName.toLowerCase(  ).endsWith( strFileType ) )
+        if ( strConfigError != null )
         {
-            strRssFileName = strRssFileName + strFileType;
+            return redirect( request, strConfigError );
         }
 
-        // Verifies whether the file's name exists
-        if ( RssGeneratedFileHome.checkRssFileFileName( strRssFileName ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_FILENAME_ALREADY_EXISTS, AdminMessage.TYPE_STOP );
-        }
-
-        if ( ( resourceRss != null ) && ( request.getParameter( PARAMETER_CANCEL ) == null ) )
-        {
-            String strError = resourceRss.doValidateConfigForm( request, getLocale(  ) );
-
-            if ( strError != null )
-            {
-                return strError;
-            }
-        }
-
-        if ( StringUtils.isBlank( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( !getFeedTypes(  ).contains( strFeedType ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_FEED_TYPE, AdminMessage.TYPE_STOP );
-        }
-
-        if ( StringUtils.isBlank( strEncoding ) )
-        {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_NO_ENCODING, AdminMessage.TYPE_STOP );
-        }
-
-        int nMaxItems;
-
-        if ( StringUtils.isBlank( strRssMaxItems ) )
-        {
-            // set to 0 -- no limit
-            nMaxItems = 0;
-        }
-        else
-        {
-            try
-            {
-                nMaxItems = Integer.parseInt( strRssMaxItems );
-            }
-            catch ( NumberFormatException nfe )
-            {
-                AppLogService.error( nfe.getMessage(  ), nfe );
-
-                return AdminMessageService.getMessageUrl( request, MESSAGE_MAX_ITEMS, AdminMessage.TYPE_STOP );
-            }
-        }
-
-        RssGeneratedFile rssFile = new RssGeneratedFile(  );
-        rssFile.setName( strRssFileName );
+        RssGeneratedFile rssFile = new RssGeneratedFile( );
+        rssFile.setName( getFileName( strRssFileName ) );
         rssFile.setState( STATE_OK );
-        rssFile.setDescription( resourceRss.getDescription(  ) );
-        rssFile.setWorkgroup( strWorkgroup );
-        rssFile.setTypeResourceRss( resourceRss.getResourceRssType(  ).getKey(  ) );
-        rssFile.setMaxItems( nMaxItems );
-        rssFile.setFeedType( strFeedType );
-        rssFile.setEncoding( strEncoding );
+        rssFile.setDescription( resourceRss.getDescription( ) );
+        rssFile.setWorkgroup( request.getParameter( PARAMETER_WORKGROUP_KEY ) );
+        rssFile.setTypeResourceRss( resourceRss.getResourceRssType( ).getKey( ) );
+        setFeedFormat( rssFile, request );
         RssGeneratedFileHome.create( rssFile );
 
-        resourceRss.setEncoding( strEncoding );
-        resourceRss.setFeedType( strFeedType );
-        resourceRss.setId( rssFile.getId(  ) );
+        setResourceFeedFormat( resourceRss, rssFile );
+        resourceRss.doSaveConfig( request, getLocale( ) );
+        RssGeneratorService.createFileRss( rssFile.getName( ), FeedUtil.getFeed( resourceRss ) );
 
-        //sauvegarde du coté directory
-        resourceRss.doSaveConfig( request, getLocale(  ) );
-
-        String strRss = FeedUtil.getFeed( resourceRss );
-
-        // Call the create file method
-        RssGeneratorService.createFileRss( strRssFileName, strRss );
-
-        return getJspManageRssFile( request );
-    }
-
-    /**
-     * return url of the jsp manage workflow
-     * @param request The HTTP request
-     * @return url of the jsp manage workflow
-     */
-    private String getJspManageRssFile( HttpServletRequest request )
-    {
-        return AppPathService.getBaseUrl( request ) + JSP_MANAGE_RSS_FILE;
-    }
-
-    /**
-     * return url of the jsp create ResourceRss
-     * @param request The HTTP request
-     * @return url of the jsp create ResourceRss
-     */
-    private String getJspCreateRssResource( HttpServletRequest request, String strRssName, String strRssWorkgroup,
-        String rss_type, String resourceKey, Map<String, String> parameterList )
-    {
-        String strParam = new String(  );
-
-        for ( String parameter : parameterList.keySet(  ) )
-        {
-            strParam += ( parameter + "=" + parameterList.get( parameter ) + "&" );
-        }
-
-        return AppPathService.getBaseUrl( request ) + JSP_CREATE_RESOURCE_RSS_FILE + "?" + PARAMETER_PUSH_RSS_NAME +
-        "=" + strRssName + "&" + PARAMETER_WORKGROUP_KEY + "=" + strRssWorkgroup + "&" + PARAMETER_RSS_TYPE + "=" +
-        rss_type + "&" + PARAMETER_RSS_RESOURCE_KEY + "=" + resourceKey + "&" + strParam;
-    }
-
-    /**
-     * return url of the jsp modify ResourceRss
-     * @param request The HTTP request
-     * @return url of the jsp modify ResourceRss
-     */
-    private String getJspModifyRssResource( HttpServletRequest request, String id_rss, String strRssName,
-        String strRssWorkgroup, String rss_type, String resourceKey, Map<String, String> parameterList )
-    {
-        String strParam = new String(  );
-
-        for ( String parameter : parameterList.keySet(  ) )
-        {
-            strParam += ( parameter + "=" + parameterList.get( parameter ) + "&" );
-        }
-
-        return AppPathService.getBaseUrl( request ) + JSP_MODIFY_RESOURCE_RSS_FILE + "?" + PARAMETER_PUSH_RSS_NAME +
-        "=" + strRssName + "&" + PARAMETER_WORKGROUP_KEY + "=" + strRssWorkgroup + "&" + PARAMETER_PUSH_RSS_ID + "=" +
-        id_rss + "&" + PARAMETER_RSS_TYPE + "=" + rss_type + "&" + PARAMETER_RSS_RESOURCE_KEY + "=" + resourceKey +
-        "&" + strParam;
+        return redirectView( request, VIEW_MANAGE_RSS_FILES );
     }
 
     /**
      * Returns the form to update a rss file
      *
-     * @param request The Http request
+     * @param model
+     *            the model
+     * @param request
+     *            The Http request
      * @return The HTML form to update info
+     * @throws AccessDeniedException
+     *             if the user may not see the rss file
      */
-    public String getModifyRssFile( HttpServletRequest request )
+    @View( VIEW_MODIFY_RSS_FILE )
+    public String getModifyRssFile( Models model, HttpServletRequest request ) throws AccessDeniedException
     {
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_MODIFY );
+        RssGeneratedFile rss = getAuthorizedRssFile( request );
 
-        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( getUser(  ), getLocale(  ) );
-        int nRssFileId = Integer.parseInt( request.getParameter( PARAMETER_PUSH_RSS_ID ) );
-        RssGeneratedFile rss = RssGeneratedFileHome.findByPrimaryKey( nRssFileId );
-
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
+        if ( rss == null )
+        {
+            return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RSS_FILE_NOT_FOUND, AdminMessage.TYPE_STOP ) );
+        }
 
         if ( request.getParameter( PARAMETER_WORKGROUP_KEY ) != null )
         {
@@ -1004,178 +467,506 @@ public class RssJspBean extends PluginAdminPageJspBean
         }
 
         model.put( MARK_RSS_FILE, rss );
-        model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
+        model.put( MARK_USER_WORKGROUP_LIST, AdminWorkgroupService.getUserWorkgroups( getUser( ), getLocale( ) ) );
+        model.put( MARK_ENCODING_LIST, getRefList( _strEncodings ) );
+        model.put( MARK_FEED_TYPE_LIST, getRefList( _strFeedTypes ) );
 
-        ReferenceList refListEncoding = getRefListEncoding(  );
-
-        model.put( MARK_ENCODING_LIST, refListEncoding );
-
-        ReferenceList refListFeedType = getRefListFeedType(  );
-        model.put( MARK_FEED_TYPE_LIST, refListFeedType );
-
-        HtmlTemplate template = null;
-
-        if ( ( rss.getTypeResourceRss(  ) != null ) && ( rss.getPortletId(  ) == 0 ) )
+        if ( isResourceFile( rss ) )
         {
-            IResourceRss resourceRss = RssService.getInstance(  )
-                                                 .getResourceRssInstance( rss.getTypeResourceRss(  ), getLocale(  ) );
+            IResourceRss resourceRss = _rssService.getResourceRssInstance( rss.getTypeResourceRss( ), getLocale( ) );
 
-            model.put( MARK_RESOURCE_RSS, resourceRss.getResourceRssType(  ) );
-            resourceRss.setId( rss.getId(  ) );
-            model.put( MARK_RESOURCE_RSS_CONFIG, resourceRss.getDisplayModifyConfigForm( request, getLocale(  ) ) );
-            template = AppTemplateService.getTemplate( TEMPLATE_MODIFY_PUSH_RSS_FILE_RESOURCE, getLocale(  ), model );
+            if ( resourceRss == null )
+            {
+                return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RESOURCE, AdminMessage.TYPE_STOP ) );
+            }
+
+            resourceRss.setId( rss.getId( ) );
+            model.put( MARK_RESOURCE_RSS, resourceRss.getResourceRssType( ) );
+            model.put( MARK_RESOURCE_RSS_CONFIG, resourceRss.getDisplayModifyConfigForm( request, getLocale( ) ) );
+
+            return getPage( PROPERTY_PAGE_TITLE_MODIFY, TEMPLATE_MODIFY_PUSH_RSS_FILE_RESOURCE, model );
+        }
+
+        model.put( MARK_PORTLET_LIST, getPortletList( ) );
+
+        return getPage( PROPERTY_PAGE_TITLE_MODIFY, TEMPLATE_MODIFY_PUSH_RSS_FILE_PORTLET, model );
+    }
+
+    /**
+     * Modifies a rss file, of a portlet or of a resource
+     *
+     * @param request
+     *            The Http request
+     * @return The url of the list, of the form or of the error
+     * @throws AccessDeniedException
+     *             if the user may not see the rss file
+     */
+    @Action( ACTION_MODIFY_RSS_FILE )
+    public String doModifyRssFile( HttpServletRequest request ) throws AccessDeniedException
+    {
+        RssGeneratedFile rssFile = getAuthorizedRssFile( request );
+
+        if ( rssFile == null )
+        {
+            addError( MESSAGE_RSS_FILE_NOT_FOUND, getLocale( ) );
+
+            return redirectView( request, VIEW_MANAGE_RSS_FILES );
+        }
+
+        return isResourceFile( rssFile ) ? doModifyRssFileResource( request, rssFile ) : doModifyRssFilePortlet( request, rssFile );
+    }
+
+    /**
+     * Modifies the rss file of a portlet
+     *
+     * @param request
+     *            The Http request
+     * @param rssFile
+     *            the rss file
+     * @return The url of the list or of the form
+     */
+    private String doModifyRssFilePortlet( HttpServletRequest request, RssGeneratedFile rssFile )
+    {
+        String strPortletId = request.getParameter( PARAMETER_PUSH_RSS_PORTLET_ID );
+        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
+        String strError = null;
+
+        if ( ( strPortletId == null ) || !strPortletId.matches( REGEX_ID ) || ( getPortletList( ).toMap( ).get( strPortletId ) == null ) )
+        {
+            strError = MESSAGE_NO_DOCUMENT_PORTLET;
+        }
+        else if ( StringUtils.isBlank( strRssFileName ) )
+        {
+            strError = Messages.MANDATORY_FIELDS;
         }
         else
         {
-            Collection<Portlet> listInvolvedPortlets = PublishingService.getInstance(  ).getPublishedPortlets(  );
-            //test authorization on all portlets
-            listInvolvedPortlets = PortletService.getInstance(  )
-                                                 .getAuthorizedPortletCollection( listInvolvedPortlets, getUser(  ) );
-
-            ReferenceList referenceList = new ReferenceList(  );
-
-            for ( Portlet portlet : listInvolvedPortlets )
-            {
-                referenceList.addItem( portlet.getId(  ), portlet.getName(  ) );
-            }
-
-            model.put( MARK_PORTLET_LIST, referenceList );
-
-            template = AppTemplateService.getTemplate( TEMPLATE_MODIFY_PUSH_RSS_FILE_PORTLET, getLocale(  ), model );
+            strError = validateFileName( strRssFileName, false );
         }
 
-        return getAdminPage( template.getHtml(  ) );
+        if ( strError == null )
+        {
+            strError = validateFeedFormat( request );
+        }
+
+        if ( strError != null )
+        {
+            addError( strError, getLocale( ) );
+
+            return redirect( request, VIEW_MODIFY_RSS_FILE, PARAMETER_PUSH_RSS_ID, rssFile.getId( ) );
+        }
+
+        String strOldName = rssFile.getName( );
+        rssFile.setPortletId( Integer.parseInt( strPortletId ) );
+        rssFile.setName( getFileName( strRssFileName ) );
+        rssFile.setState( RssGeneratedFileHome.checkRssFilePortlet( rssFile.getPortletId( ) ) ? STATE_OK : STATE_PORTLET_MISSING );
+        rssFile.setWorkgroup( request.getParameter( PARAMETER_WORKGROUP_KEY ) );
+        rssFile.setDescription( request.getParameter( PARAMETER_PUSH_RSS_DESCRIPTION ) );
+        setFeedFormat( rssFile, request );
+        RssGeneratedFileHome.update( rssFile );
+
+        renameFile( strOldName, rssFile.getName( ) );
+        RssGeneratorService.createFileRss( rssFile.getName( ), RssGeneratorService.createRssDocument( rssFile.getPortletId( ), rssFile.getDescription( ),
+                rssFile.getEncoding( ), rssFile.getFeedType( ), rssFile.getMaxItems( ), request ) );
+
+        return redirectView( request, VIEW_MANAGE_RSS_FILES );
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Private implementation
-
     /**
-     * Utility method to build the URL of the given rssFile file
+     * Modifies the rss file of a resource, or applies the parameters of its configuration form
      *
-     * @param strNameRssFile The HTML template to fill
-     * @param request The HttpServletRequest
-     * @return the URL to get the rssFile file
+     * @param request
+     *            The Http request
+     * @param rssFile
+     *            the rss file
+     * @return The url of the list, of the form or of the error
      */
-    private String getRssFileUrl( String strNameRssFile, HttpServletRequest request )
+    private String doModifyRssFileResource( HttpServletRequest request, RssGeneratedFile rssFile )
     {
-        String strBaseUrl = AppPathService.getBaseUrl( request );
-        String strStockingDirectoryName = AppPropertiesService.getProperty( RssGeneratorService.PROPERTY_STORAGE_DIRECTORY_NAME );
-        String strPluginWarehouse = AppPropertiesService.getProperty( PROPERTY_PATH_PLUGIN_WAREHOUSE );
+        IResourceRss resourceRss = _rssService.getResourceRssInstance( rssFile.getTypeResourceRss( ), getLocale( ) );
 
-        //Removes extra slash in the url
-        if ( strPluginWarehouse.startsWith( "/" ) )
+        if ( resourceRss == null )
         {
-            strPluginWarehouse = strPluginWarehouse.substring( 1 );
+            addError( MESSAGE_RESOURCE, getLocale( ) );
+
+            return redirectView( request, VIEW_MANAGE_RSS_FILES );
         }
 
-        String strRssFileRepository = strPluginWarehouse + "/" + strStockingDirectoryName;
-        strBaseUrl = strBaseUrl + strRssFileRepository + "/" + strNameRssFile;
+        Map<String, String> mapFormParameters = getResourceFormParameters( request, resourceRss );
+        mapFormParameters.put( PARAMETER_PUSH_RSS_ID, Integer.toString( rssFile.getId( ) ) );
 
-        return strBaseUrl;
-    }
-
-    /**
-     * Process removal of a file
-     * @param request The Http request
-     * @return String The url of the administration console
-     */
-    public String doDeleteRssFile( HttpServletRequest request )
-    {
-        int nIdFileRss = Integer.parseInt( request.getParameter( PARAMETER_PUSH_RSS_ID ) );
-        RssGeneratedFile rssGeneratedFile = RssGeneratedFileHome.findByPrimaryKey( nIdFileRss );
-
-        if ( ( rssGeneratedFile.getPortletId(  ) == 0 ) && ( rssGeneratedFile.getTypeResourceRss(  ) != null ) )
+        if ( request.getParameter( PARAMETER_APPLY ) != null )
         {
-            IResourceRss resourceRss = RssService.getInstance(  )
-                                                 .getResourceRssInstance( rssGeneratedFile.getTypeResourceRss(  ),
-                    getLocale(  ) );
-            resourceRss.deleteResourceRssConfig( rssGeneratedFile.getId(  ) );
+            return redirect( request, VIEW_MODIFY_RSS_FILE, mapFormParameters );
         }
 
-        RssGeneratedFileHome.remove( nIdFileRss );
+        String strRssFileName = request.getParameter( PARAMETER_PUSH_RSS_NAME );
+        String strError = StringUtils.isBlank( strRssFileName ) ? Messages.MANDATORY_FIELDS : validateFileName( strRssFileName, false );
 
-        return getHomeUrl( request );
+        if ( strError == null )
+        {
+            strError = validateFeedFormat( request );
+        }
+
+        if ( strError != null )
+        {
+            addError( strError, getLocale( ) );
+
+            return redirect( request, VIEW_MODIFY_RSS_FILE, mapFormParameters );
+        }
+
+        String strConfigError = resourceRss.doValidateConfigForm( request, getLocale( ) );
+
+        if ( strConfigError != null )
+        {
+            return redirect( request, strConfigError );
+        }
+
+        String strOldName = rssFile.getName( );
+        rssFile.setName( getFileName( strRssFileName ) );
+        rssFile.setWorkgroup( request.getParameter( PARAMETER_WORKGROUP_KEY ) );
+        rssFile.setDescription( resourceRss.getDescription( ) );
+        setFeedFormat( rssFile, request );
+        setResourceFeedFormat( resourceRss, rssFile );
+        rssFile.setState( resourceRss.checkResource( ) ? STATE_OK : STATE_PORTLET_MISSING );
+        RssGeneratedFileHome.update( rssFile );
+
+        resourceRss.doUpdateConfig( request, getLocale( ) );
+        renameFile( strOldName, rssFile.getName( ) );
+        RssGeneratorService.createFileRss( rssFile.getName( ), FeedUtil.getFeed( resourceRss ) );
+
+        return redirectView( request, VIEW_MANAGE_RSS_FILES );
     }
 
     /**
      * Confirms the removal of a rss file
      *
-     * @param request The Http request
-     * @return The Jsp URL of the process result
+     * @param request
+     *            The Http request
+     * @return The url of the confirmation message
+     * @throws AccessDeniedException
+     *             if the user may not see the rss file
      */
-    public String doConfirmDeleteRssFile( HttpServletRequest request )
+    @View( value = VIEW_CONFIRM_REMOVE_RSS_FILE, securityTokenAction = ACTION_REMOVE_RSS_FILE )
+    public String getConfirmRemoveRssFile( HttpServletRequest request ) throws AccessDeniedException
     {
-        String strIdFile = request.getParameter( PARAMETER_PUSH_RSS_ID );
-        int nIdFile = Integer.parseInt( strIdFile );
-        String strDeleteUrl = JSP_DELETE_RSS_FILE + "?" + PARAMETER_PUSH_RSS_ID + "=" + strIdFile;
-        String strUrl = AdminMessageService.getMessageUrl( request, MESSAGE_RSS_LINKED_FEED, AdminMessage.TYPE_STOP );
+        RssGeneratedFile rssFile = getAuthorizedRssFile( request );
 
-        if ( checkNoRssExternalFeed( nIdFile, request ) )
+        if ( rssFile == null )
         {
-            RssGeneratedFile rssFile = RssGeneratedFileHome.findByPrimaryKey( nIdFile );
-            Object[] messageArgs = { rssFile.getName(  ) };
-            strUrl = AdminMessageService.getMessageUrl( request, MESSAGE_CONFIRM_DELETE_RSS_FILE, messageArgs,
-                    strDeleteUrl, AdminMessage.TYPE_CONFIRMATION );
+            return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RSS_FILE_NOT_FOUND, AdminMessage.TYPE_STOP ) );
         }
 
-        return strUrl;
+        if ( !checkNoRssExternalFeed( rssFile, request ) )
+        {
+            return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_RSS_LINKED_FEED, AdminMessage.TYPE_STOP ) );
+        }
+
+        UrlItem url = new UrlItem( getActionUrl( ACTION_REMOVE_RSS_FILE ) );
+        url.addParameter( PARAMETER_PUSH_RSS_ID, rssFile.getId( ) );
+
+        Object [ ] messageArgs = {
+            rssFile.getName( )
+        };
+
+        return redirect( request,
+                AdminMessageService.getMessageUrl( request, MESSAGE_CONFIRM_DELETE_RSS_FILE, messageArgs, url.getUrl( ), AdminMessage.TYPE_CONFIRMATION ) );
     }
 
     /**
-     * Used by the paginator to fetch a number of items
-     * @param request The HttpRequest
-     * @return The number of items
+     * Process removal of a file
+     *
+     * @param request
+     *            The Http request
+     * @return String The url of the list
+     * @throws AccessDeniedException
+     *             if the user may not see the rss file
      */
-    private int getItemsPerPage( HttpServletRequest request )
+    @Action( ACTION_REMOVE_RSS_FILE )
+    public String doRemoveRssFile( HttpServletRequest request ) throws AccessDeniedException
     {
-        int nItemsPerPage;
-        String strItemsPerPage = request.getParameter( PARAMETER_ITEMS_PER_PAGE );
+        RssGeneratedFile rssGeneratedFile = getAuthorizedRssFile( request );
 
-        if ( strItemsPerPage != null )
+        if ( rssGeneratedFile == null )
         {
-            nItemsPerPage = Integer.parseInt( strItemsPerPage );
-        }
-        else
-        {
-            if ( _nItemsPerPage != 0 )
-            {
-                nItemsPerPage = _nItemsPerPage;
-            }
-            else
-            {
-                nItemsPerPage = AppPropertiesService.getPropertyInt( PROPERTY_RSS_PER_PAGE, 10 );
-            }
+            addError( MESSAGE_RSS_FILE_NOT_FOUND, getLocale( ) );
+
+            return redirectView( request, VIEW_MANAGE_RSS_FILES );
         }
 
-        return nItemsPerPage;
+        if ( isResourceFile( rssGeneratedFile ) )
+        {
+            IResourceRss resourceRss = _rssService.getResourceRssInstance( rssGeneratedFile.getTypeResourceRss( ), getLocale( ) );
+
+            if ( resourceRss != null )
+            {
+                resourceRss.deleteResourceRssConfig( rssGeneratedFile.getId( ) );
+            }
+        }
+
+        RssGeneratedFileHome.remove( rssGeneratedFile.getId( ) );
+        RssGeneratorService.deleteFileRss( rssGeneratedFile.getName( ), RssService.PLUGIN_NAME );
+
+        return redirectView( request, VIEW_MANAGE_RSS_FILES );
     }
 
     /**
-     * Fetches the page index
-     * @param request The HttpRequest
-     * @return The PageIndex
+     * Loads the rss file named by the request and checks the workgroup of the user
+     *
+     * @param request
+     *            the request
+     * @return the rss file, or null when the request names no existing file
+     * @throws AccessDeniedException
+     *             if the user may not see the rss file
      */
-    private String getPageIndex( HttpServletRequest request )
+    private RssGeneratedFile getAuthorizedRssFile( HttpServletRequest request ) throws AccessDeniedException
     {
-        String strPageIndex = request.getParameter( PARAMETER_PAGE_INDEX );
-        strPageIndex = ( strPageIndex != null ) ? strPageIndex : _strCurrentPageIndex;
+        String strId = request.getParameter( PARAMETER_PUSH_RSS_ID );
 
-        return strPageIndex;
+        if ( !StringUtils.isNumeric( strId ) )
+        {
+            return null;
+        }
+
+        RssGeneratedFile rssFile = RssGeneratedFileHome.findByPrimaryKey( Integer.parseInt( strId ) );
+
+        if ( rssFile != null && !AdminWorkgroupService.isAuthorized( rssFile, (User) getUser( ) ) )
+        {
+            throw new AccessDeniedException( MESSAGE_ACCESS_DENIED );
+        }
+
+        return rssFile;
+    }
+
+    /**
+     * Tells whether a rss file is generated from a resource rather than from a portlet
+     *
+     * @param rssFile
+     *            the rss file
+     * @return true for the rss file of a resource
+     */
+    private static boolean isResourceFile( RssGeneratedFile rssFile )
+    {
+        return ( rssFile.getTypeResourceRss( ) != null ) && ( rssFile.getPortletId( ) == 0 );
+    }
+
+    /**
+     * Returns the published document portlets the user may see
+     *
+     * @return the portlets
+     */
+    private ReferenceList getPortletList( )
+    {
+        Collection<Portlet> listInvolvedPortlets = _portletService.getAuthorizedPortletCollection( _publishingService.getPublishedPortlets( ), getUser( ) );
+        ReferenceList referenceList = new ReferenceList( );
+
+        for ( Portlet portlet : listInvolvedPortlets )
+        {
+            referenceList.addItem( portlet.getId( ), portlet.getName( ) );
+        }
+
+        return referenceList;
+    }
+
+    /**
+     * Builds the parameters a resource form keeps when it is displayed again
+     *
+     * @param request
+     *            the request
+     * @param resourceRss
+     *            the resource
+     * @return the parameters
+     */
+    private Map<String, String> getResourceFormParameters( HttpServletRequest request, IResourceRss resourceRss )
+    {
+        Map<String, String> mapParameters = new HashMap<>( resourceRss.getParameterToApply( request ) );
+
+        for ( String strParameter : Arrays.asList( PARAMETER_PUSH_RSS_NAME, PARAMETER_WORKGROUP_KEY, PARAMETER_RSS_RESOURCE_KEY, PARAMETER_PUSH_RSS_MAX_ITEMS,
+                PARAMETER_PUSH_RSS_FEED_TYPE, PARAMETER_PUSH_RSS_ENCODING ) )
+        {
+            String strValue = request.getParameter( strParameter );
+
+            if ( strValue != null )
+            {
+                mapParameters.put( strParameter, strValue );
+            }
+        }
+
+        return mapParameters;
+    }
+
+    /**
+     * Checks the length and, for a new file, the uniqueness of a file name
+     *
+     * @param strRssFileName
+     *            the name typed by the user
+     * @param bNew
+     *            true for a new file
+     * @return the key of the error message, or null when the name is valid
+     */
+    private String validateFileName( String strRssFileName, boolean bNew )
+    {
+        if ( strRssFileName.length( ) > _nNameMaxLength )
+        {
+            return MESSAGE_FILENAME_TOO_LONG;
+        }
+
+        if ( bNew && RssGeneratedFileHome.checkRssFileFileName( getFileName( strRssFileName ) ) )
+        {
+            return MESSAGE_FILENAME_ALREADY_EXISTS;
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks the feed type, the encoding and the maximum number of items of the request
+     *
+     * @param request
+     *            the request
+     * @return the key of the error message, or null when they are valid
+     */
+    private String validateFeedFormat( HttpServletRequest request )
+    {
+        String strFeedType = request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE );
+        String strMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
+
+        if ( StringUtils.isBlank( strFeedType ) || !getValues( _strFeedTypes ).contains( strFeedType ) )
+        {
+            return MESSAGE_NO_FEED_TYPE;
+        }
+
+        if ( StringUtils.isBlank( request.getParameter( PARAMETER_PUSH_RSS_ENCODING ) ) )
+        {
+            return MESSAGE_NO_ENCODING;
+        }
+
+        if ( StringUtils.isNotBlank( strMaxItems ) && !StringUtils.isNumeric( strMaxItems.trim( ) ) )
+        {
+            return MESSAGE_MAX_ITEMS;
+        }
+
+        return null;
+    }
+
+    /**
+     * Sets the feed type, the encoding and the maximum number of items of a rss file from a validated request
+     *
+     * @param rssFile
+     *            the rss file
+     * @param request
+     *            the request
+     */
+    private static void setFeedFormat( RssGeneratedFile rssFile, HttpServletRequest request )
+    {
+        String strMaxItems = request.getParameter( PARAMETER_PUSH_RSS_MAX_ITEMS );
+        rssFile.setMaxItems( StringUtils.isBlank( strMaxItems ) ? 0 : Integer.parseInt( strMaxItems.trim( ) ) );
+        rssFile.setFeedType( request.getParameter( PARAMETER_PUSH_RSS_FEED_TYPE ) );
+        rssFile.setEncoding( request.getParameter( PARAMETER_PUSH_RSS_ENCODING ) );
+    }
+
+    /**
+     * Copies the identifier and the format of a rss file to its resource
+     *
+     * @param resourceRss
+     *            the resource
+     * @param rssFile
+     *            the rss file
+     */
+    private static void setResourceFeedFormat( IResourceRss resourceRss, RssGeneratedFile rssFile )
+    {
+        resourceRss.setId( rssFile.getId( ) );
+        resourceRss.setEncoding( rssFile.getEncoding( ) );
+        resourceRss.setFeedType( rssFile.getFeedType( ) );
+        resourceRss.setMaxItems( rssFile.getMaxItems( ) );
+    }
+
+    /**
+     * Builds the file name of a name typed by the user
+     *
+     * @param strRssFileName
+     *            the name typed by the user
+     * @return the cleaned name, with the file extension
+     */
+    private String getFileName( String strRssFileName )
+    {
+        String strName = UploadUtil.cleanFileName( strRssFileName.trim( ) );
+
+        return strName.toLowerCase( ).endsWith( _strFileType ) ? strName : ( strName + _strFileType );
+    }
+
+    /**
+     * Removes the file of the former name of a renamed rss file
+     *
+     * @param strOldName
+     *            the former name
+     * @param strNewName
+     *            the new name
+     */
+    private static void renameFile( String strOldName, String strNewName )
+    {
+        if ( ( strOldName != null ) && !strOldName.equals( strNewName ) )
+        {
+            RssGeneratorService.deleteFileRss( strOldName, RssService.PLUGIN_NAME );
+        }
+    }
+
+    /**
+     * Returns the values of a comma separated list
+     *
+     * @param strValues
+     *            the comma separated values
+     * @return the values
+     */
+    private static List<String> getValues( String strValues )
+    {
+        return Arrays.asList( strValues.split( "," ) );
+    }
+
+    /**
+     * Builds the reference list of the values of a comma separated list
+     *
+     * @param strValues
+     *            the comma separated values
+     * @return the ReferenceList
+     */
+    private static ReferenceList getRefList( String strValues )
+    {
+        ReferenceList refList = new ReferenceList( );
+
+        for ( String strValue : getValues( strValues ) )
+        {
+            refList.addItem( strValue, strValue );
+        }
+
+        return refList;
+    }
+
+    /**
+     * Utility method to build the URL of the given rssFile file
+     *
+     * @param strNameRssFile
+     *            The name of the file
+     * @param request
+     *            The HttpServletRequest
+     * @return the URL to get the rssFile file
+     */
+    private String getRssFileUrl( String strNameRssFile, HttpServletRequest request )
+    {
+        return AppPathService.getBaseUrl( request ) + Strings.CS.removeStart( _strPluginWarehouse, "/" ) + "/" + _strStorageDirectoryName + "/" + strNameRssFile;
     }
 
     /**
      * Checks whether the generated rss file is linked as an external rss feed
-     * @param nIdRssFile the identifier of the rss file
-     * @param request The HttpRequest
-     * @return a boolean
+     *
+     * @param rssFile
+     *            the rss file
+     * @param request
+     *            The HttpRequest
+     * @return true when no external feed reads the file
      */
-    public boolean checkNoRssExternalFeed( int nIdRssFile, HttpServletRequest request )
+    private boolean checkNoRssExternalFeed( RssGeneratedFile rssFile, HttpServletRequest request )
     {
-        RssGeneratedFile rssFile = RssGeneratedFileHome.findByPrimaryKey( nIdRssFile );
-        String strUrlFile = getRssFileUrl( rssFile.getName(  ), request );
-
-        //if the url of the file is used as an external feed
-        return RssFeedHome.checkUrlNotUsed( strUrlFile );
+        return RssFeedHome.checkUrlNotUsed( getRssFileUrl( rssFile.getName( ), request ) );
     }
 }

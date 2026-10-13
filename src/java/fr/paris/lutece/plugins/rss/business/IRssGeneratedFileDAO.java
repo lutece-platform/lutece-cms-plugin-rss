@@ -33,7 +33,6 @@
  */
 package fr.paris.lutece.plugins.rss.business;
 
-import fr.paris.lutece.portal.business.stylesheet.StyleSheet;
 
 import java.util.Collection;
 import java.util.List;
@@ -115,13 +114,6 @@ public interface IRssGeneratedFileDAO
      * @return the portlets in form of Collection
      */
     Collection selectRssPortlets(  );
-
-    /**
-     * Returns the stylesheet for RSS files
-     * @param nStyleSheetId the identifier of the Stylesheet
-     * @return the stylesheet
-     */
-    StyleSheet selectXslFile( int nStyleSheetId );
 
     /**
      * Updates the record in the table rss_generation

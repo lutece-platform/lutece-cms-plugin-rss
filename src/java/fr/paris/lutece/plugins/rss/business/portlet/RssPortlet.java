@@ -35,19 +35,23 @@ package fr.paris.lutece.plugins.rss.business.portlet;
 
 import fr.paris.lutece.plugins.rss.service.RssContent;
 import fr.paris.lutece.plugins.rss.service.RssContentService;
-import fr.paris.lutece.portal.business.portlet.Portlet;
-import fr.paris.lutece.util.xml.XmlUtil;
+import fr.paris.lutece.plugins.rss.service.RssFeedParser;
+import fr.paris.lutece.portal.business.portlet.PortletHtmlContent;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
  * This class represents business objects RssPortlet
  */
-public class RssPortlet extends Portlet
+public class RssPortlet extends PortletHtmlContent
 {
-    /////////////////////////////////////////////////////////////////////////////////
-    // Constants
+    private static final String TEMPLATE_DEFAULT = "skin/plugins/rss/portlet/portlet_rss.html";
+    private static final String MARK_FEED = "feed";
+
     private String _strRssFeedId;
 
     /**
@@ -55,13 +59,13 @@ public class RssPortlet extends Portlet
      */
     public RssPortlet(  )
     {
-        setPortletTypeId( RssPortletHome.getInstance(  ).getPortletTypeId(  ) );
+        setPortletTypeId( CDI.current( ).select( RssPortletHome.class ).get( ).getPortletTypeId(  ) );
     }
 
     /**
-     * Sets the url of the portlet
+     * Sets the identifier of the rss feed
      *
-     * @param strRssFeedId the Rss portlet url
+     * @param strRssFeedId the identifier of the rss feed
      */
     public void setRssFeedId( String strRssFeedId )
     {
@@ -69,9 +73,9 @@ public class RssPortlet extends Portlet
     }
 
     /**
-     * Returns the Rss Feed Id of the Rss portlet
+     * Returns the identifier of the rss feed
      *
-     * @return the Rss Portlet url
+     * @return the identifier of the rss feed
      */
     public String getRssFeedId(  )
     {
@@ -79,40 +83,23 @@ public class RssPortlet extends Portlet
     }
 
     /**
-     * Returns the Xml code of the Rss portlet with XML heading
+     * Renders the feed of the portlet
      *
-     * @param request The HTTP servlet request
-     * @return the Xml code of the Rss portlet
+     * @param request the HTTP request
+     * @return the HTML of the portlet
      */
-    public String getXmlDocument( HttpServletRequest request )
+    @Override
+    public String getHtmlContent( HttpServletRequest request )
     {
-        return XmlUtil.getXmlHeader(  ) + getXml( request );
-    }
+        Map<String, Object> model = createPortletModel( );
+        RssContent rssContent = CDI.current( ).select( RssContentService.class ).get( ).getRssContent( getRssFeedId( ) );
 
-    /**
-     * Returns the Xml code of the Rss portlet without XML heading
-     *
-     * @param request The HTTP servlet request
-     * @return the Xml code of the Rss portlet content
-     */
-    public String getXml( HttpServletRequest request )
-    {
-        StringBuffer strXml = new StringBuffer(  );
-        RssContent rssContent = RssContentService.getInstance(  ).getRssContent( getRssFeedId(  ) );
-        String strDocument = rssContent.getContent(  );
-
-        if ( strDocument != null )
+        if ( rssContent != null )
         {
-            /*  removes the Xml heading of the downloaded file RSS */
-            int nPos = strDocument.indexOf( "<rss" );
-
-            if ( nPos > 0 )
-            {
-                strXml.append( strDocument.substring( nPos, strDocument.length(  ) ) );
-            }
+            model.put( MARK_FEED, RssFeedParser.parse( rssContent.getContent( ) ) );
         }
 
-        return addPortletTags( strXml );
+        return renderTemplate( request, TEMPLATE_DEFAULT, model );
     }
 
     /**
@@ -120,14 +107,15 @@ public class RssPortlet extends Portlet
      */
     public void update(  )
     {
-        RssPortletHome.getInstance(  ).update( this );
+        CDI.current( ).select( RssPortletHome.class ).get( ).update( this );
     }
 
     /**
      * Removes the current instance of the RssPortlet object
      */
+    @Override
     public void remove(  )
     {
-        RssPortletHome.getInstance(  ).remove( this );
+        CDI.current( ).select( RssPortletHome.class ).get( ).remove( this );
     }
 }

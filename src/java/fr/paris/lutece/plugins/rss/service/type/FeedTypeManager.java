@@ -35,11 +35,16 @@ package fr.paris.lutece.plugins.rss.service.type;
 
 import com.sun.syndication.feed.WireFeed;
 
-import fr.paris.lutece.plugins.rss.service.RssPlugin;
+import fr.paris.lutece.plugins.rss.service.type.atom.DefaultAtomFeedTypeProvider;
+import fr.paris.lutece.plugins.rss.service.type.rss.DefaultRssFeedTypeProvider;
 import fr.paris.lutece.portal.business.rss.IFeedResource;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.util.List;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 
 /**
@@ -47,51 +52,40 @@ import java.util.List;
  * FeedTypeManager
  *
  */
-public final class FeedTypeManager
+@ApplicationScoped
+public class FeedTypeManager
 {
-    private static final String BEAN_FEED_TYPE_MANAGER = "rss.feedTypeManager";
+    @Inject
+    private Instance<IFeedTypeProvider> _providers;
+
+    @Inject
+    private DefaultRssFeedTypeProvider _defaultRssProvider;
+
+    @Inject
+    private DefaultAtomFeedTypeProvider _defaultAtomProvider;
+
     private List<IFeedTypeProvider> _listDefaultProviders;
-    private List<IFeedTypeProvider> _listProviders;
 
     /**
-     * Get the instance of the manager
-     * @return the manager
+     * Builds the list of the default providers, used when no other provider handles a feed type
      */
-    public static FeedTypeManager getManager(  )
+    @PostConstruct
+    void init(  )
     {
-        return (FeedTypeManager) SpringContextService.getPluginBean( RssPlugin.PLUGIN_NAME, BEAN_FEED_TYPE_MANAGER );
+        _listDefaultProviders = List.of( _defaultRssProvider, _defaultAtomProvider );
     }
 
     /**
-     * Set the list of providers
-     * @param listProviders the list of providers
-     */
-    public void setProvidersList( List<IFeedTypeProvider> listProviders )
-    {
-        _listProviders = listProviders;
-    }
-
-    /**
-     * Set the default providers list
-     * @param listDefaultProviders the default providers list
-     */
-    public void setDefaultProvidersList( List<IFeedTypeProvider> listDefaultProviders )
-    {
-        _listDefaultProviders = listDefaultProviders;
-    }
-
-    /**
-     * Get the wire feed
+     * Gets the {@link WireFeed}
      * @param strFeedType the feed type
      * @param resource the resource
      * @param strEncoding the encoding
      * @param nMaxItems the max items
-     * @return the wire feed
+     * @return the {@link WireFeed}, <code>null</code> if no provider is found.
      */
     public WireFeed getWireFeed( String strFeedType, IFeedResource resource, String strEncoding, int nMaxItems )
     {
-        // Get from providers first
-        for ( IFeedTypeProvider provider : _listProviders )
+        for ( IFeedTypeProvider provider : _providers )
         {
             if ( provider.isInvoked( strFeedType ) )
             {
@@ -99,7 +93,6 @@ public final class FeedTypeManager
             }
         }
 
-        // If no providers are invoked, then get from default providers
         for ( IFeedTypeProvider defaultProvider : _listDefaultProviders )
         {
             if ( defaultProvider.isInvoked( strFeedType ) )

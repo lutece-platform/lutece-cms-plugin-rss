@@ -38,11 +38,13 @@ import fr.paris.lutece.util.sql.DAOUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 /**
  * this class provides Data Access methods for RssPortlet objects
  */
+@ApplicationScoped
 public final class RssPortletDAO implements IRssPortletDAO
 {
     ////////////////////////////////////////////////////////////////////////////
@@ -64,11 +66,12 @@ public final class RssPortletDAO implements IRssPortletDAO
     public void insert( Portlet portlet )
     {
         RssPortlet p = (RssPortlet) portlet;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT );
-        daoUtil.setInt( 1, p.getId(  ) );
-        daoUtil.setString( 2, p.getRssFeedId(  ) );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT ) )
+        {
+            daoUtil.setInt( 1, p.getId(  ) );
+            daoUtil.setString( 2, p.getRssFeedId(  ) );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -78,10 +81,11 @@ public final class RssPortletDAO implements IRssPortletDAO
      */
     public void delete( int nPortletId )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE );
-        daoUtil.setInt( 1, nPortletId );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE ) )
+        {
+            daoUtil.setInt( 1, nPortletId );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -92,13 +96,14 @@ public final class RssPortletDAO implements IRssPortletDAO
     public void store( Portlet portlet )
     {
         RssPortlet p = (RssPortlet) portlet;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE );
-        daoUtil.setInt( 1, p.getId(  ) );
-        daoUtil.setString( 2, p.getRssFeedId(  ) );
-        daoUtil.setInt( 3, p.getId(  ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE ) )
+        {
+            daoUtil.setInt( 1, p.getId(  ) );
+            daoUtil.setString( 2, p.getRssFeedId(  ) );
+            daoUtil.setInt( 3, p.getId(  ) );
 
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -109,17 +114,17 @@ public final class RssPortletDAO implements IRssPortletDAO
     public Portlet load( int nIdPortlet )
     {
         RssPortlet portlet = new RssPortlet(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT );
-        daoUtil.setInt( 1, nIdPortlet );
-        daoUtil.executeQuery(  );
-
-        if ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT ) )
         {
-            portlet.setId( daoUtil.getInt( 1 ) );
-            portlet.setRssFeedId( daoUtil.getString( 2 ) );
-        }
+            daoUtil.setInt( 1, nIdPortlet );
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            if ( daoUtil.next(  ) )
+            {
+                portlet.setId( daoUtil.getInt( 1 ) );
+                portlet.setRssFeedId( daoUtil.getString( 2 ) );
+            }
+        }
 
         return portlet;
     }
@@ -131,21 +136,20 @@ public final class RssPortletDAO implements IRssPortletDAO
      */
     public List<RssPortlet> checkLinkedPortlet( int nIdRssFeed )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_LINKED_PORTLET );
-        daoUtil.setInt( 1, nIdRssFeed );
-        daoUtil.executeQuery(  );
-
-        List<RssPortlet> listPortlet = new ArrayList<RssPortlet>(  );
-
-        while ( daoUtil.next(  ) )
+        List<RssPortlet> listPortlet = new ArrayList<>(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_LINKED_PORTLET ) )
         {
-            RssPortlet portlet = new RssPortlet(  );
-            portlet.setId( daoUtil.getInt( 1 ) );
-            portlet.setRssFeedId( Integer.toString( nIdRssFeed ) );
-            listPortlet.add( portlet );
-        }
+            daoUtil.setString( 1, Integer.toString( nIdRssFeed ) );
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            while ( daoUtil.next(  ) )
+            {
+                RssPortlet portlet = new RssPortlet(  );
+                portlet.setId( daoUtil.getInt( 1 ) );
+                portlet.setRssFeedId( Integer.toString( nIdRssFeed ) );
+                listPortlet.add( portlet );
+            }
+        }
 
         return listPortlet;
     }

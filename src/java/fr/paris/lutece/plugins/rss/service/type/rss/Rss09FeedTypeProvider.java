@@ -43,6 +43,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 /**
@@ -50,6 +51,7 @@ import java.util.List;
  * RssFeedTypeProvider
  *
  */
+@ApplicationScoped
 public class Rss09FeedTypeProvider extends AbstractRssFeedTypeProvider
 {
     private static final String RSS_0_9_PREFIX = "rss_0.9";

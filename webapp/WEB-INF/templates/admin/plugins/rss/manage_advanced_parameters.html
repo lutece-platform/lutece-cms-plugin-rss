@@ -1,10 +1,12 @@
-<@row>
-	<@columns>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.manage_rss.labelAdvancedParameters}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp' buttonIcon='arrow-left' title='#i18n{portal.util.labelBack}' color='light' />
+		</@pageHeader>
 		<@box>
-			<@boxHeader title='#i18n{rss.manage_rss.labelAdvancedParameters}' />
 			<@boxBody>
-				<#include 'advanced_parameters.html' />
+				<#include "/admin/plugins/rss/advanced_parameters.html" />
 			</@boxBody>
 		</@box>
-	</@columns>
-</@row>
+	</@pageColumn>
+</@pageContainer>

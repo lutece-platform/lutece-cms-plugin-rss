@@ -33,7 +33,6 @@
  */
 package fr.paris.lutece.plugins.rss.business;
 
-import fr.paris.lutece.portal.service.portlet.PortletRemovalListenerService;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupResource;
 
 import java.sql.Timestamp;
@@ -44,7 +43,6 @@ import java.sql.Timestamp;
  */
 public class RssGeneratedFile implements AdminWorkgroupResource
 {
-    private static RssGeneratedFilePortletRemovalListener _listenerWorkgroup;
 
     ////////////////////////////////////////////////////////////////////////////////
     // Constants
@@ -60,19 +58,6 @@ public class RssGeneratedFile implements AdminWorkgroupResource
     private String _strFeedType;
     private String _strEncoding;
     private int _nMaxItems;
-
-    /**
-    * Initialize the Rss
-    */
-    public static void init(  )
-    {
-        // Create removal listeners and register them
-        if ( _listenerWorkgroup == null )
-        {
-            _listenerWorkgroup = new RssGeneratedFilePortletRemovalListener(  );
-            PortletRemovalListenerService.getService(  ).registerListener( _listenerWorkgroup );
-        }
-    }
 
     /**
      * Returns the identifier of this pushRss object

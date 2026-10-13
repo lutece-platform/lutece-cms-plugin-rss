@@ -43,6 +43,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 
 
 /**
@@ -50,6 +52,8 @@ import java.util.List;
  * DefaultRssFeedTypeProvider
  *
  */
+@ApplicationScoped
+@Typed( DefaultRssFeedTypeProvider.class )
 public class DefaultRssFeedTypeProvider extends AbstractRssFeedTypeProvider
 {
     private static final String RSS_PREFIX = "rss";

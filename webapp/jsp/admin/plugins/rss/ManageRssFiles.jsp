@@ -1,12 +1,9 @@
 <%@ page errorPage="../../ErrorPage.jsp" %>
 
+${ pageContext.setAttribute( 'strContent', rssJspBean.processController( pageContext.request , pageContext.response ) ) }
+
 <jsp:include page="../../AdminHeader.jsp" />
 
-<jsp:useBean id="rss" scope="session" class="fr.paris.lutece.plugins.rss.web.RssJspBean" />
-
-
-<% rss.init( request, rss.RIGHT_RSS_MANAGEMENT ); %>
-<%= rss.getManageRssFile( request ) %>
+${ pageContext.getAttribute( 'strContent' ) }
 
 <%@ include file="../../AdminFooter.jsp" %>
-

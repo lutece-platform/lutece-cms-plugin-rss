@@ -36,19 +36,24 @@ package fr.paris.lutece.plugins.rss.business;
 import fr.paris.lutece.plugins.document.business.Document;
 import fr.paris.lutece.plugins.document.business.portlet.DocumentListPortletHome;
 import fr.paris.lutece.portal.business.portlet.PortletImpl;
-import fr.paris.lutece.portal.business.stylesheet.StyleSheet;
 import fr.paris.lutece.util.sql.DAOUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 
 /**
  * This class provides Data Access methods for RSS objects
  */
+@ApplicationScoped
 public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
 {
+    @Inject
+    private DocumentListPortletHome _documentListPortletHome;
+
     // Constants
     private static final String SQL_QUERY_NEW_PK = " SELECT max(id_rss) FROM rss_generation ";
     private static final String SQL_QUERY_INSERT = "  INSERT INTO rss_generation ( id_rss, id_portlet, name, state, date_update, description,workgroup_key, type_resource_rss, max_items, feed_type, feed_encoding )" +
@@ -81,8 +86,6 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
         "a.date_creation ,a.date_modification, a.title, a.document_summary, a.xml_validated_content " +
         "FROM document a INNER JOIN document_published  b ON a.id_document=b.id_document " +
         "WHERE b.id_portlet = ? AND b.status = 0 ORDER BY b.date_publishing DESC";
-    private static final String SQL_QUERY_SELECT_XSL_FILE = " SELECT id_stylesheet , description , file_name, source " +
-        " FROM stylesheet " + " WHERE id_stylesheet = ? ";
 
     /**
      * Calculates a new primary key to add a new record
@@ -237,7 +240,6 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
     
             if ( !daoUtil.next(  ) )
             {
-                daoUtil.free(  );
     
                 return false;
             }
@@ -261,7 +263,6 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
     
             if ( !daoUtil.next(  ) )
             {
-                daoUtil.free(  );
     
                 return false;
             }
@@ -335,7 +336,7 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
     public Collection<PortletImpl> selectAllRssPortlets(  )
     {
         ArrayList<PortletImpl> list = new ArrayList<>(  );
-        String strPortletTypeId = DocumentListPortletHome.getInstance(  ).getPortletTypeId(  );
+        String strPortletTypeId = _documentListPortletHome.getPortletTypeId( );
         try( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_ALL_RSS ) )
         {    
             daoUtil.setString( 1, strPortletTypeId );
@@ -393,7 +394,6 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
     
             if ( !daoUtil.next(  ) )
             {
-                daoUtil.free(  );
     
                 return false;
             }
@@ -434,29 +434,4 @@ public final class RssGeneratedFileDAO implements IRssGeneratedFileDAO
         return list;
     }
 
-    /**
-     * Returns the stylesheet for RSS files
-     * @param nStyleSheetId the identifier of the Stylesheet
-     * @return the stylesheet
-     */
-    public StyleSheet selectXslFile( int nStyleSheetId )
-    {
-        StyleSheet stylesheet = new StyleSheet(  );
-        try( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_XSL_FILE ) )
-        {
-            daoUtil.setInt( 1, nStyleSheetId );
-    
-            daoUtil.executeQuery(  );
-    
-            if ( daoUtil.next(  ) )
-            {
-                stylesheet.setId( daoUtil.getInt( 1 ) );
-                stylesheet.setDescription( daoUtil.getString( 2 ) );
-                stylesheet.setFile( daoUtil.getString( 3 ) );
-                stylesheet.setSource( daoUtil.getBytes( 4 ) );
-            }
-        }
-
-        return stylesheet;
-    }
 }

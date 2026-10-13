@@ -44,13 +44,12 @@ import fr.paris.lutece.util.html.HtmlTemplate;
 import java.io.File;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -80,9 +79,10 @@ public class RssInclude implements PageInclude
      * @param nMode The current mode
      * @param request The HTTP request
      */
+    @Override
     public void fillTemplate( Map<String, Object> rootModel, PageData data, int nMode, HttpServletRequest request )
     {
-        HashMap<String, Collection<RssGeneratedFile>> model = new HashMap<String, Collection<RssGeneratedFile>>(  );
+        Map<String, Object> model = new HashMap<>(  );
         List<RssGeneratedFile> listRssGeneratedFile = RssGeneratedFileHome.getRssFileList(  );
         List<RssGeneratedFile> listRemove = new ArrayList<RssGeneratedFile>(  );
 

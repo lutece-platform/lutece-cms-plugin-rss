@@ -37,14 +37,13 @@ import com.sun.syndication.feed.WireFeed;
 import com.sun.syndication.io.FeedException;
 import com.sun.syndication.io.WireFeedOutput;
 
-import fr.paris.lutece.plugins.rss.business.RssFeed;
-import fr.paris.lutece.plugins.rss.business.RssFeedHome;
 import fr.paris.lutece.plugins.rss.service.type.FeedTypeManager;
 import fr.paris.lutece.portal.business.rss.IFeedResource;
 import fr.paris.lutece.portal.business.rss.IResourceRss;
 import fr.paris.lutece.portal.service.util.AppLogService;
 
 import org.apache.commons.lang3.StringUtils;
+import jakarta.enterprise.inject.spi.CDI;
 
 
 /**
@@ -77,7 +76,7 @@ public final class FeedUtil
         }
 
         // WireFeed does not contain enough data, but can be passed for output generation.
-        WireFeed wireFeed = FeedTypeManager.getManager(  ).getWireFeed( strFeedType, resource, strEncoding, nMaxItems );
+        WireFeed wireFeed = CDI.current( ).select( FeedTypeManager.class ).get( ).getWireFeed( strFeedType, resource, strEncoding, nMaxItems );
 
         WireFeedOutput output = new WireFeedOutput(  );
         String strXML = StringUtils.EMPTY;
@@ -106,8 +105,9 @@ public final class FeedUtil
 
         if ( resource == null )
         {
-            // no implementation - use the deprecated
-            return RssFeedHome.create( (RssFeed) resourceRSS ).toString( );
+            AppLogService.error( "The resource rss {} gives no feed", resourceRSS.getName( ) );
+
+            return StringUtils.EMPTY;
         }
 
         if ( resource.getItems(  ).isEmpty(  ) )

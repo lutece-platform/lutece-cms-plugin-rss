@@ -38,11 +38,13 @@ import fr.paris.lutece.util.sql.DAOUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 /**
  * This class provides Data Access methods for RssFeed objects
  */
+@ApplicationScoped
 public final class RssFeedDAO implements IRssFeedDAO
 {
     // Constants
@@ -247,7 +249,6 @@ public final class RssFeedDAO implements IRssFeedDAO
     
             if ( daoUtil.next(  ) )
             {
-                daoUtil.free(  );
     
                 return false;
             }
