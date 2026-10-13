@@ -42,13 +42,13 @@ import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import java.io.File;
 import java.io.IOException;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -82,21 +82,21 @@ public class RssGeneratorFilter implements Filter
         strRssStorageRoot = ( strRssStorageRoot.endsWith( "/" ) ) ? strRssStorageRoot : ( strRssStorageRoot + "/" );
 
         String strRssName = strURI.substring( strURI.indexOf( strRssStorageRoot ) + strRssStorageRoot.length(  ) );
-        String strRssPath = AppPathService.getPath( RssGeneratorService.PROPERTY_RSS_STORAGE_FOLDER_PATH, strRssName );
+        String strRssPath = new File( AppPathService.getPath( RssGeneratorService.PROPERTY_RSS_STORAGE_FOLDER_PATH ), strRssName ).getPath(  );
         File dirRSS = new File( strRssPath );
 
         if ( !dirRSS.exists(  ) )
         {
-            AppLogService.info( "Requested RSS file '" + strRssName + "' not found in the file system." );
+            AppLogService.info( "Requested RSS file '{}' not found in the file system.", strRssName );
 
             if ( RssGeneratedFileHome.checkRssFileFileName( strRssName ) )
             {
-                AppLogService.info( "Requested RSS file '" + strRssName + "' exists. File regenerated inf file system" );
+                AppLogService.info( "Requested RSS file '{}' exists. File regenerated inf file system", strRssName );
                 RssGeneratorService.generateAllRss(  );
             }
             else
             {
-                AppLogService.info( "Requested RSS file '" + strRssName + "' doesn't exist in database." );
+                AppLogService.info( "Requested RSS file '{}' doesn't exist in database.", strRssName );
             }
         }
 

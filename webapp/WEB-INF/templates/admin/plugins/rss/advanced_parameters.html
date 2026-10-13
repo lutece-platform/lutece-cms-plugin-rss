@@ -1,12 +1,10 @@
-<@tform method='post' action='jsp/admin/plugins/rss/DoModifyRssParameterValues.jsp'>
-	<!-- FEED ACTIVATED BY DEFAULT -->
-	<@formGroup labelKey='#i18n{rss.manage_rss.labelActivationDefault}'>
-		<#list ["0", "1"] as b_active>
-			<@radioButton name='is_active' id='is_active'+b_active value='${b_active}' checked=(is_active = b_active)  labelFor='is_active'+b_active labelKey='#i18n{rss.manage_rss.activationDefault.${b_active}}' />
-		</#list>
+<@tform method='post' action='jsp/admin/plugins/rss/ManageRssFeeds.jsp'>
+	<@input type='hidden' name='action' value='modifyAdvancedParameters' />
+	<@formGroup labelKey='#i18n{rss.manage_rss.labelActivationDefault}' rows=2>
+		<@radioButton name='is_active' id='is_active0' value='0' checked=( (is_active!'0') == '0' ) labelFor='is_active0' labelKey='#i18n{rss.manage_rss.activationDefault.0}' />
+		<@radioButton name='is_active' id='is_active1' value='1' checked=( (is_active!'0') == '1' ) labelFor='is_active1' labelKey='#i18n{rss.manage_rss.activationDefault.1}' />
 	</@formGroup>
-	<@formGroup>
-		<@button type='submit' name='save' title='#i18n{rss.modify_rss_feed.buttonModify}' buttonIcon='save' />
-		<@button type='submit' name='cancel' title='#i18n{rss.modify_rss_feed.buttonModify}' buttonIcon='times' color='default' />
+	<@formGroup rows=2>
+		<@button type='submit' name='save' title='#i18n{rss.modify_rss_feed.buttonModify}' buttonIcon='check' color='primary' />
 	</@formGroup>
 </@tform>

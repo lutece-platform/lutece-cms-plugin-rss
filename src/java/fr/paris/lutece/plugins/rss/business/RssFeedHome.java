@@ -35,7 +35,7 @@ package fr.paris.lutece.plugins.rss.business;
 
 import fr.paris.lutece.plugins.rss.business.portlet.IRssPortletDAO;
 import fr.paris.lutece.plugins.rss.business.portlet.RssPortlet;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.util.ReferenceList;
 
 import java.util.ArrayList;
@@ -48,9 +48,8 @@ import java.util.List;
 public final class RssFeedHome
 {
     // Static variable pointed at the DAO instance
-    private static IRssFeedDAO _dao = (IRssFeedDAO) SpringContextService.getPluginBean( "rss", "rssFeedDAO" );
-    private static IRssPortletDAO _daoPortlet = (IRssPortletDAO) SpringContextService.getPluginBean( "rss",
-            "rssPortletDAO" );
+    private static IRssFeedDAO _dao = CDI.current( ).select( IRssFeedDAO.class ).get( );
+    private static IRssPortletDAO _daoPortlet = CDI.current( ).select( IRssPortletDAO.class ).get( );
 
     /**
      * Private constructor - this class need not be instantiated

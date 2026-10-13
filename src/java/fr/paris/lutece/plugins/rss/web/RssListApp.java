@@ -33,56 +33,48 @@
  */
 package fr.paris.lutece.plugins.rss.web;
 
-import fr.paris.lutece.plugins.rss.business.RssFeed;
 import fr.paris.lutece.plugins.rss.business.RssFeedHome;
-import fr.paris.lutece.portal.service.i18n.I18nService;
-import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.template.AppTemplateService;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
+import fr.paris.lutece.portal.util.mvc.xpage.MVCApplication;
+import fr.paris.lutece.portal.util.mvc.xpage.annotations.Controller;
+import fr.paris.lutece.portal.web.cdi.mvc.Models;
 import fr.paris.lutece.portal.web.xpages.XPage;
-import fr.paris.lutece.portal.web.xpages.XPageApplication;
-import fr.paris.lutece.util.html.HtmlTemplate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
- * This class populate the RSS list XPage
+ * This class provides the page listing the active rss feeds
  */
-public class RssListApp implements XPageApplication
+@RequestScoped
+@Named( "rss.xpage.list_rss" )
+@Controller( xpageName = RssListApp.XPAGE_NAME, pageTitleI18nKey = RssListApp.MESSAGE_PAGE_TITLE, pagePathI18nKey = RssListApp.MESSAGE_PAGE_PATH, securityTokenEnabled = true )
+public class RssListApp extends MVCApplication
 {
+    public static final String XPAGE_NAME = "list_rss";
+    public static final String MESSAGE_PAGE_TITLE = "rss.rssList.pageTitle";
+    public static final String MESSAGE_PAGE_PATH = "rss.rssList.pagePathLabel";
+
+    private static final long serialVersionUID = 1L;
+
+    private static final String VIEW_LIST = "list";
     private static final String TEMPLATE_RSS_LIST = "skin/plugins/rss/rss_list.html";
-    private static final String PROPERTY_PAGE_TITLE = "rssList.pageTitle";
-    private static final String PROPERTY_PAGE_PATH_LABEL = "rssList.pagePathLabel";
     private static final String MARK_RSS_FEEDS_LIST = "rss_feeds_list";
 
     /**
-     * This page give a list of RSS feeds
+     * Returns the list of the active rss feeds
+     *
+     * @param model the model
+     * @param request the HTTP request
+     * @return the page
      */
-    public XPage getPage( HttpServletRequest request, int nMode, Plugin plugin )
+    @View( value = VIEW_LIST, defaultView = true )
+    public XPage getList( Models model, HttpServletRequest request )
     {
-        XPage page = new XPage(  );
+        model.put( MARK_RSS_FEEDS_LIST, RssFeedHome.getRssFeeds(  ) );
 
-        Locale locale = request.getLocale(  );
-
-        Map<String, Object> model = new HashMap<String, Object>(  );
-
-        // population de la liste des flux
-        List<RssFeed> listRssFeedList = RssFeedHome.getRssFeeds(  );
-        model.put( MARK_RSS_FEEDS_LIST, listRssFeedList );
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_RSS_LIST, locale, model );
-        String strPageTitle = I18nService.getLocalizedString( PROPERTY_PAGE_TITLE, locale );
-        String strPagePathLabel = I18nService.getLocalizedString( PROPERTY_PAGE_PATH_LABEL, locale );
-
-        page.setContent( template.getHtml(  ) );
-        page.setTitle( strPageTitle );
-        page.setPathLabel( strPagePathLabel );
-
-        return page;
+        return getXPage( TEMPLATE_RSS_LIST, getLocale( request ), model );
     }
 }

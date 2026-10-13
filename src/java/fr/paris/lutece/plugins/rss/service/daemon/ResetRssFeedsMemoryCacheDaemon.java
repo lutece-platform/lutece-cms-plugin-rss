@@ -35,6 +35,7 @@ package fr.paris.lutece.plugins.rss.service.daemon;
 
 import fr.paris.lutece.plugins.rss.service.RssContentService;
 import fr.paris.lutece.portal.service.daemon.Daemon;
+import jakarta.enterprise.inject.spi.CDI;
 
 
 /**
@@ -51,8 +52,9 @@ public class ResetRssFeedsMemoryCacheDaemon extends Daemon
      */
     public void run(  )
     {
-        int nCacheSize = RssContentService.getInstance(  ).getCacheSize(  );
-        RssContentService.getInstance(  ).resetCache(  );
+        RssContentService rssContentService = CDI.current( ).select( RssContentService.class ).get( );
+        int nCacheSize = rssContentService.getCacheSize(  );
+        rssContentService.resetCache(  );
         setLastRunLogs( "\nRSS Feeds memory cache cleared : " + nCacheSize + " objects removed" );
     }
 }

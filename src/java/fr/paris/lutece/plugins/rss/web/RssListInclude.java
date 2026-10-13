@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -57,6 +57,7 @@ public class RssListInclude implements PageInclude
      * The list of the rss files
      */
     private static final String MARK_RSS_FILES_LIST = "rss_list";
+    private static final String MARK_RSS_FEEDS_LIST = "rss_feeds_list";
 
     /**
      * The template used to generate the rss links in the html code
@@ -70,12 +71,13 @@ public class RssListInclude implements PageInclude
      * @param nMode The current mode
      * @param request The HTTP request
      */
+    @Override
     public void fillTemplate( Map<String, Object> rootModel, PageData data, int nMode, HttpServletRequest request )
     {
-        Map model = new HashMap(  );
+        Map<String, Object> model = new HashMap<>(  );
         List<RssFeed> listRssFeedList = RssFeedHome.getRssFeeds(  );
 
-        model.put( MARK_RSS_FILES_LIST, listRssFeedList );
+        model.put( MARK_RSS_FEEDS_LIST, listRssFeedList );
 
         HtmlTemplate templateList = AppTemplateService.getTemplate( TEMPLATE_RSS_INCLUDE, Locale.getDefault(  ), model );
         rootModel.put( MARK_RSS_FILES_LIST, templateList.getHtml(  ) );

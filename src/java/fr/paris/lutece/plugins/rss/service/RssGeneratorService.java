@@ -57,8 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.StringUtils;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -83,8 +82,6 @@ public final class RssGeneratorService
     private static final String MARK_RSS_SITE_DESCRIPTION = "site_description";
     private static final String MARK_ID_PORTLET = "id_portlet";
     private static final String PROPERTY_SITE_LANGUAGE = "rss.language";
-    private static final String PROPERTY_WEBAPP_PROD_URL = "lutece.prod.url";
-    private static final String PROPERTY_BASE_URL = "lutece.base.url";
     private static final String CONSTANT_IMAGE_RSS = "/images/local/skin/plugins/rss/rss-image.png";
 
     /**
@@ -130,24 +127,7 @@ public final class RssGeneratorService
         String strRssFileSiteName = PortalService.getSiteName();
         String strRssFileLanguage = AppPropertiesService.getProperty( PROPERTY_SITE_LANGUAGE );
         String strIdPortlet = Integer.toString( nIdPortlet );
-        String strWebAppUrl = AppPropertiesService.getProperty( PROPERTY_WEBAPP_PROD_URL );
-        String strSiteUrl;
-
-        if ( StringUtils.isNotBlank( strWebAppUrl ) )
-        {
-            strSiteUrl = strWebAppUrl;
-        }
-        else
-        {
-            if ( request == null )
-            {
-                strSiteUrl = AppPropertiesService.getProperty( PROPERTY_BASE_URL );
-            }
-            else
-            {
-                strSiteUrl = AppPathService.getBaseUrl( request );
-            }
-        }
+        String strSiteUrl = AppPathService.getProdUrl( request );
 
         IFeedResource resource = new FeedResource(  );
         resource.setTitle( strRssFileSiteName );
@@ -208,8 +188,7 @@ public final class RssGeneratorService
         String strRssFileSiteName = PortalService.getSiteName();
         String strRssFileLanguage = AppPropertiesService.getProperty( PROPERTY_SITE_LANGUAGE );
 
-        String strWebAppUrl = AppPropertiesService.getProperty( PROPERTY_WEBAPP_PROD_URL );
-        String strSiteUrl = strWebAppUrl;
+        String strSiteUrl = AppPathService.getProdUrl( (HttpServletRequest) null );
         model.put( MARK_RSS_SITE_NAME, strRssFileSiteName );
         model.put( MARK_RSS_FILE_LANGUAGE, strRssFileLanguage );
         model.put( MARK_RSS_SITE_URL, strSiteUrl );
@@ -318,9 +297,12 @@ public final class RssGeneratorService
 
         for ( RssGeneratedFile file : list )
         {
-            createRssDocument( file.getPortletId(  ), file.getDescription(  ), file.getEncoding(  ),
-                file.getFeedType(  ), file.getMaxItems(  ) );
-            sb.append( "\nFile  " ).append( file.getName(  ) ).append( " regenerated.\n" );
+            if ( file.getPortletId(  ) != 0 )
+            {
+                createFileRss( file.getName(  ), createRssDocument( file.getPortletId(  ), file.getDescription(  ), file.getEncoding(  ),
+                    file.getFeedType(  ), file.getMaxItems(  ) ) );
+                sb.append( "\nFile  " ).append( file.getName(  ) ).append( " regenerated.\n" );
+            }
         }
 
         AppLogService.info( sb.toString(  ) );

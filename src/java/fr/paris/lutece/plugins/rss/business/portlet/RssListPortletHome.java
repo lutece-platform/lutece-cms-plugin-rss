@@ -36,30 +36,25 @@ package fr.paris.lutece.plugins.rss.business.portlet;
 import fr.paris.lutece.portal.business.portlet.IPortletInterfaceDAO;
 import fr.paris.lutece.portal.business.portlet.PortletHome;
 import fr.paris.lutece.portal.business.portlet.PortletTypeHome;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.spi.CDI;
 
 
 /**
  * This class provides instances management methods for Rss objects
  */
+@ApplicationScoped
 public class RssListPortletHome extends PortletHome
 {
     // Static variable pointed at the DAO instance
-    private static IRssListPortletDAO _dao = (IRssListPortletDAO) SpringContextService.getPluginBean( "rssList",
-            "rssListPortletDAO" );
+    private static IRssListPortletDAO _dao = CDI.current( ).select( IRssListPortletDAO.class ).get( );
 
-    /* This class implements the Singleton design pattern. */
-    private static RssListPortletHome _singleton;
 
     /**
      * Constructor
      */
     public RssListPortletHome(  )
     {
-        if ( _singleton == null )
-        {
-            _singleton = this;
-        }
     }
 
     /**
@@ -76,21 +71,6 @@ public class RssListPortletHome extends PortletHome
     }
 
     /**
-     * Returns the instance of Rss Portlet
-     *
-     * @return the Rss Portlet instance
-     */
-    public static PortletHome getInstance(  )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = new RssListPortletHome(  );
-        }
-
-        return _singleton;
-    }
-
-    /**
      * Returns the instance of the portlet DAO singleton
      *
      * @return the instance of the DAO singleton
@@ -98,5 +78,16 @@ public class RssListPortletHome extends PortletHome
     public IPortletInterfaceDAO getDAO(  )
     {
         return _dao;
+    }
+
+    /**
+     * Tells whether a portlet of this type has the given identifier
+     *
+     * @param nIdPortlet the identifier of the portlet
+     * @return true when the portlet exists
+     */
+    public static boolean checkPortletExists( int nIdPortlet )
+    {
+        return ( nIdPortlet > 0 ) && ( _dao.load( nIdPortlet ).getId(  ) == nIdPortlet );
     }
 }

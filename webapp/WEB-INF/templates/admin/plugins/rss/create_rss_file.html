@@ -1,24 +1,24 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.create_rss_file.tableLabel}' />
-			<@boxBody>
-				<@tform method='post' name='create_rss_file' id='create_rss_file' action='jsp/admin/plugins/rss/DoCreateRssFile.jsp'>
-					<@formGroup labelFor='folder_path' labelKey='#i18n{rss.create_rss_file.rowSwitchType}' mandatory=true>  
-						<@radioButton labelFor='rss_type1' labelKey='#i18n{rss.create_rss_file.rowPortlet}' id='rss_type1' name='rss_type' checked=true value='portlet' />
-						<#if resource_list?size &gt; 0>
-							<label class="sr-only" for="">#i18n{rss.create_rss_file.rowResourceRss</label>  
-							<@radioButton labelFor='rss_type2' labelKey='#i18n{rss.create_rss_file.rowResourceRss}' id='rss_type2' name='rss_type' value='resourceRss' />
-							
-							<label for="rss_resource_key" class="sr-only"></label>
-							<@select name='rss_resource_key' default_value='-1' items=resource_list />
-						</#if>
-					</@formGroup>
-					<@formGroup>
-						<@button type='submit' name='save' title='#i18n{rss.create_rss_file.buttonValidate}' buttonIcon='save' />
-					</@formGroup>
-				</@tform>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.create_rss_file.tableLabel}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp' buttonIcon='arrow-left' title='#i18n{portal.util.labelBack}' color='light' />
+		</@pageHeader>
+		<@tform method='get' name='create_rss_file' id='create_rss_file' action='jsp/admin/plugins/rss/ManageRssFiles.jsp' boxed=true>
+			<@formGroup labelKey='#i18n{rss.create_rss_file.rowSwitchType}' mandatory=true rows=2>
+				<@radioButton labelFor='rss_type1' labelKey='#i18n{rss.create_rss_file.rowPortlet}' id='rss_type1' name='view' checked=true value='createRssFilePortlet' />
+				<#if resource_list?has_content>
+					<@radioButton labelFor='rss_type2' labelKey='#i18n{rss.create_rss_file.rowResourceRss}' id='rss_type2' name='view' value='createRssFileResource' />
+				</#if>
+			</@formGroup>
+			<#if resource_list?has_content>
+			<@formGroup labelFor='rss_resource_key' labelKey='#i18n{rss.create_rss_file.rowResourceRss}' rows=2>
+				<@select name='rss_resource_key' default_value='' items=resource_list />
+			</@formGroup>
+			</#if>
+			<@formGroup rows=2>
+				<@button type='submit' title='#i18n{rss.create_rss_file.buttonValidate}' buttonIcon='check' color='primary' />
+				<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp' title='#i18n{portal.util.labelCancel}' buttonIcon='x' color='light' />
+			</@formGroup>
+		</@tform>
+	</@pageColumn>
+</@pageContainer>

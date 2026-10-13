@@ -96,7 +96,7 @@ public class RssContentLoader implements ResourceLoader
     public Resource getResource( String strId )
     {
         RssContent rssContent = new RssContent(  );
-        String strContent = getFromCacheFile( strId );
+        String strContent = readCacheFile( strId );
 
         if ( strContent == null )
         {
@@ -120,13 +120,19 @@ public class RssContentLoader implements ResourceLoader
     /**
      * Fetch an active RSS feed
      * @param nId The RSS feed Id
-     * @return The content of the RSS feed
+     * @return The content of the RSS feed, or null when no active feed has this id
      * @throws RssParsingException If a parsing exception occurs
      */
     public static String fetchRssFeed( int nId ) throws RssParsingException
     {
         String strContent = null;
         RssFeed rss = RssFeedHome.findByPrimaryKey( nId, true );
+
+        if ( rss == null )
+        {
+            return null;
+        }
+
         HttpAccess httpAccess = new HttpAccess(  );
 
         try
@@ -151,13 +157,19 @@ public class RssContentLoader implements ResourceLoader
     /**
      * Gets the content of the RSS feed from a cache file
      * @param strId The RS feed Id
-     * @return The content of the RSS feed
+     * @return The content of the RSS feed, or null when the feed is not cached yet
      */
-    private static String getFromCacheFile( String strId )
+    private static String readCacheFile( String strId )
     {
         String strContent = null;
-        String strFilePath = AppPathService.getPath( PROPERTY_CACHE_DIRECTORY, strId + FILE_EXT );
+        String strFilePath = new File( AppPathService.getPath( PROPERTY_CACHE_DIRECTORY ), strId + FILE_EXT ).getPath(  );
         File file = new File( strFilePath );
+
+        if ( !file.exists(  ) )
+        {
+            return null;
+        }
+
         BufferedReader input = null;
 
         StringBuffer sbContent = new StringBuffer(  );
@@ -212,7 +224,7 @@ public class RssContentLoader implements ResourceLoader
      */
     private static void saveInCacheFile( int nId, String strContent )
     {
-        String strFilePath = AppPathService.getPath( PROPERTY_CACHE_DIRECTORY, "" + nId + FILE_EXT );
+        String strFilePath = new File( AppPathService.getPath( PROPERTY_CACHE_DIRECTORY ), nId + FILE_EXT ).getPath(  );
 
         try
         {

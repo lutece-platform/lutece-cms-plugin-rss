@@ -1,12 +1,8 @@
-    <table summary="#i18n{rss.manage_rss_feeds.tableSummary}">
-        <tr>
-            <th>#i18n{rss.manage_rss_feeds.columnTitleName}</th>
-            <th>#i18n{rss.manage_rss_feeds.columnTitleUrl}</th>
-        </tr>    
-        <#list rss_feeds_list as feed >
-        <tr>
-            <td> <a href="${feed.url}"> ${feed.name}</td>
-            <td>${feed.url}</td>
-        </tr>
-        </#list>
-    </table>
+<@cTpl>
+<@cContainer>
+<@cSection class='rss-list'>
+	<@cTitle level=2>#i18n{rss.rssList.pageTitle}</@cTitle>
+	<#include "/skin/plugins/rss/rss_list_include.html" />
+</@cSection>
+</@cContainer>
+</@cTpl>

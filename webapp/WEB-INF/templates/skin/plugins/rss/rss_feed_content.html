@@ -1,0 +1,20 @@
+<#if feed??>
+	<#assign feedTitle><#outputformat "HTML">${feed.title!}</#outputformat></#assign>
+	<@cTitle level=3 class='rss-feed-title'><#if (feed.link!'')?matches('^https?://.*')><@cLink href=feed.link label=feedTitle target='_blank' /><#else>${feedTitle}</#if></@cTitle>
+	<#if feed.description?has_content>
+	<@cText class='rss-feed-description'><#outputformat "HTML">${feed.description?replace('<[^>]*>', '', 'r')}</#outputformat></@cText>
+	</#if>
+	<@chList class='rss-feed-items'>
+	<#list feed.entries as entry>
+		<#if entry?index gte 15><#break></#if>
+		<#assign entryTitle><#outputformat "HTML">${entry.title!}</#outputformat></#assign>
+		<@chItem class='rss-feed-item'>
+			<#if (entry.link!'')?matches('^https?://.*')><@cLink href=entry.link label=entryTitle target='_blank' /><#else>${entryTitle}</#if>
+			<#if entry.description?? && entry.description.value?has_content>
+			<#assign entryText = entry.description.value?replace('<[^>]*>', '', 'r')?trim />
+			<@cText class='rss-feed-item-description'><#outputformat "HTML"><#if entryText?length gt 400>${entryText?substring( 0, 400 )}...<#else>${entryText}</#if></#outputformat></@cText>
+			</#if>
+		</@chItem>
+	</#list>
+	</@chList>
+</#if>

@@ -35,21 +35,32 @@ package fr.paris.lutece.plugins.rss.business.resourceRss;
 
 import fr.paris.lutece.portal.business.rss.IResourceRss;
 import fr.paris.lutece.portal.business.rss.IResourceRssType;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppLogService;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 
 /**
  * ResourceRssFactory
  */
+@ApplicationScoped
 public class ResourceRssFactory implements IResourceRssFactory
 {
+    @Inject
+    @Any
+    private Instance<IResourceRssType> _resourceRssTypes;
+
     /**
      *
      * {@inheritDoc}
      */
+    @Override
     public IResourceRss getResourceRss( String strKey )
     {
         if ( strKey == null )
@@ -58,42 +69,19 @@ public class ResourceRssFactory implements IResourceRssFactory
         }
 
         IResourceRss resourceRss = null;
-        IResourceRssType resourceRssType = null;
-
-        Collection<IResourceRssType> listResourceRssType = SpringContextService.getBeansOfType( IResourceRssType.class );
-
-        for ( IResourceRssType rssType : listResourceRssType )
-        {
-            if ( strKey.equals( rssType.getKey(  ) ) )
-            {
-                resourceRssType = rssType;
-
-                break;
-            }
-        }
+        IResourceRssType resourceRssType = _resourceRssTypes.stream( ).filter( rssType -> strKey.equals( rssType.getKey( ) ) ).findFirst( )
+                .orElse( null );
 
         if ( resourceRssType != null )
         {
             try
             {
-                resourceRss = (IResourceRss) Class.forName( resourceRssType.getClassName(  ) ).newInstance(  );
+                resourceRss = (IResourceRss) Class.forName( resourceRssType.getClassName( ) ).getDeclaredConstructor( ).newInstance( );
                 resourceRss.setResourceRssType( resourceRssType );
             }
-            catch ( ClassNotFoundException e )
+            catch( ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e )
             {
-                // class doesn't exist
-                AppLogService.error( e );
-            }
-            catch ( InstantiationException e )
-            {
-                // Class is abstract or is an interface or haven't accessible
-                // builder
-                AppLogService.error( e );
-            }
-            catch ( IllegalAccessException e )
-            {
-                // can't access to rhe class
-                AppLogService.error( e );
+                AppLogService.error( e.getMessage( ), e );
             }
         }
 
@@ -104,8 +92,9 @@ public class ResourceRssFactory implements IResourceRssFactory
      *
      * {@inheritDoc}
      */
-    public Collection<IResourceRssType> getAllResourceRssType(  )
+    @Override
+    public Collection<IResourceRssType> getAllResourceRssType( )
     {
-        return SpringContextService.getBeansOfType( IResourceRssType.class );
+        return _resourceRssTypes.stream( ).toList( );
     }
 }

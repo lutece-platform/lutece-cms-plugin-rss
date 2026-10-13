@@ -42,6 +42,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Typed;
 
 
 /**
@@ -49,6 +51,8 @@ import java.util.List;
  * AtomFeedTypeProvider
  *
  */
+@ApplicationScoped
+@Typed( DefaultAtomFeedTypeProvider.class )
 public class DefaultAtomFeedTypeProvider extends AbstractAtomFeedTypeProvider
 {
     private static final String ATOM_PREFIX = "atom";

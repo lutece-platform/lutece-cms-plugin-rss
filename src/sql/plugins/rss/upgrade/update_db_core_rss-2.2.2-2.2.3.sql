@@ -1,6 +1,13 @@
+-- liquibase formatted sql
+-- changeset rss:update_db_core_rss-2.2.2-2.2.3.sql
+-- preconditions onFail:MARK_RAN onError:WARN
 INSERT INTO core_portlet_type (id_portlet_type,name,url_creation,url_update,home_class,plugin_name,url_docreate,create_script,create_specific,create_specific_form,url_domodify,modify_script,modify_specific,modify_specific_form) VALUES 
  ('RSS_LIST_PORTLET','rss.list.portlet.name','plugins/rss/CreatePortletRssList.jsp','plugins/rss/ModifyPortletRssList.jsp','fr.paris.lutece.plugins.rss.business.portlet.RssListPortletHome','rss','plugins/rss/DoCreatePortletRssList.jsp','/admin/portlet/script_create_portlet.html','','','plugins/rss/DoModifyPortletRssList.jsp','/admin/portlet/script_modify_portlet.html','','');
  
+
+-- changeset rss:update_db_core_rss-2.2.2-2.2.3-rev1.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:3 SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME IN ('core_style_mode_stylesheet','core_stylesheet','core_style')
 --
 -- Dumping data for table core_style
 --

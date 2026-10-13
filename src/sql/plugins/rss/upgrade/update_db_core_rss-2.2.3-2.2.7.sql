@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset rss:update_db_core_rss-2.2.3-2.2.7.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:3 SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME IN ('core_style_mode_stylesheet','core_stylesheet','core_style')
 --
 -- Dumping data for table `core_style`
 --

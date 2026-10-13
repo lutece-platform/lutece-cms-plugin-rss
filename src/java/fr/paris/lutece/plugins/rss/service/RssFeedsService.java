@@ -42,15 +42,26 @@ import java.util.List;
 
 public final class RssFeedsService
 {
+    /**
+     * Private constructor
+     */
     private RssFeedsService(  )
     {
     }
 
+    /**
+     * Returns the reference list of the active feeds
+     * @return the reference list of the active feeds
+     */
     public static ReferenceList getRefListRssFeed(  )
     {
         return RssFeedHome.getRssFeedsReferenceList(  );
     }
 
+    /**
+     * Returns the active feeds
+     * @return the active feeds
+     */
     public static List<RssFeed> getRssFeed(  )
     {
         return RssFeedHome.getRssFeeds(  );

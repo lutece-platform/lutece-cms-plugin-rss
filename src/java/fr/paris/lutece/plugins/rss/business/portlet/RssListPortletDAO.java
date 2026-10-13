@@ -35,11 +35,13 @@ package fr.paris.lutece.plugins.rss.business.portlet;
 
 import fr.paris.lutece.portal.business.portlet.Portlet;
 import fr.paris.lutece.util.sql.DAOUtil;
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 /**
  * this class provides Data Access methods for RssPortlet objects
  */
+@ApplicationScoped
 public final class RssListPortletDAO implements IRssListPortletDAO
 {
     ////////////////////////////////////////////////////////////////////////////
@@ -60,10 +62,11 @@ public final class RssListPortletDAO implements IRssListPortletDAO
     public void insert( Portlet portlet )
     {
         RssListPortlet p = (RssListPortlet) portlet;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT );
-        daoUtil.setInt( 1, p.getId(  ) );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT ) )
+        {
+            daoUtil.setInt( 1, p.getId(  ) );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -73,10 +76,11 @@ public final class RssListPortletDAO implements IRssListPortletDAO
      */
     public void delete( int nPortletId )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE );
-        daoUtil.setInt( 1, nPortletId );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE ) )
+        {
+            daoUtil.setInt( 1, nPortletId );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -87,12 +91,13 @@ public final class RssListPortletDAO implements IRssListPortletDAO
     public void store( Portlet portlet )
     {
         RssListPortlet p = (RssListPortlet) portlet;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE );
-        daoUtil.setInt( 1, p.getId(  ) );
-        daoUtil.setInt( 2, p.getId(  ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE ) )
+        {
+            daoUtil.setInt( 1, p.getId(  ) );
+            daoUtil.setInt( 2, p.getId(  ) );
 
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -103,16 +108,16 @@ public final class RssListPortletDAO implements IRssListPortletDAO
     public Portlet load( int nIdPortlet )
     {
         RssListPortlet portlet = new RssListPortlet(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT );
-        daoUtil.setInt( 1, nIdPortlet );
-        daoUtil.executeQuery(  );
-
-        if ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT ) )
         {
-            portlet.setId( daoUtil.getInt( 1 ) );
-        }
+            daoUtil.setInt( 1, nIdPortlet );
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            if ( daoUtil.next(  ) )
+            {
+                portlet.setId( daoUtil.getInt( 1 ) );
+            }
+        }
 
         return portlet;
     }

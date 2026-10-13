@@ -35,7 +35,6 @@ package fr.paris.lutece.plugins.rss.business.resourceRss;
 
 import fr.paris.lutece.portal.business.rss.IResourceRss;
 import fr.paris.lutece.portal.business.rss.IResourceRssType;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.util.Collection;
 
@@ -57,7 +56,6 @@ public interface IResourceRssFactory
     /**
      * Returns all found {@link IResourceRssType}
      * @return a collection of ResourceRssType
-     * @see SpringContextService#getBeansOfType(Class)
      */
     Collection<IResourceRssType> getAllResourceRssType(  );
 }

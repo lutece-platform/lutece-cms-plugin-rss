@@ -1,57 +1,34 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.manage_rss_file.tableLabel}'>
-				<@tform method='post' action='jsp/admin/plugins/rss/CreateRssFile.jsp'>
-					<@button type='submit' title='#i18n{rss.manage_rss_file.buttonAddFeed}' hideTitle=['xs','sm','md'] buttonIcon='plus-circle' size='sm' />
-				</@tform>
-			</@boxHeader>
-			<@boxBody>
-				<@paginationAdmin paginator=paginator combo=1 />
-				<@table summary='#i18n{rss.manage_rss_file.tableSummary}'>
-					<@tableHead>
-						<@tr>
-							<@th>#i18n{rss.manage_rss_file.columnTitleDescription}</@th>
-							<@th></@th>
-							<@th></@th>
-							<@th></@th>
-							<@th>#i18n{rss.manage_rss_file.columnTitleAction}</@th>
-						</@tr>
-					</@tableHead>
-					<@tableBody>
-						<#list rss_files_list as rssFile >
-						<@tr>
-							<@td>
-								<#if rssFile.state != 1>
-									<@tag color='success' title='#i18n{portal.util.labelEnabled}' tagIcon='check' />
-								<#else>
-									<@tag color='danger' title='#i18n{portal.util.labelDisabled}' tagIcon='times' />
-								</#if>
-								&nbsp;<strong>${rssFile.description}</strong>
-							</@td>
-							<@td>
-								<#if rssFile.portletName?exists><@tag color='default'>#i18n{rss.manage_rss_file.columnTitlePortlet}: ${rssFile.portletName}</@tag></#if>
-							</@td>
-							<@td>
-								<@link href='${rss_file_url}${rssFile.name}' target='_blank' title='#i18n{rss.manage_rss_file.columnTitleUrl} ${rssFile.description}'>
-									${rss_file_url}${rssFile.name}
-									<@icon style='external-link' />
-								</@link>
-							</@td>
-							<@td>
-								<#if rssFile.updateDate?exists>
-									<@span align='right' title="#i18n{rss.manage_rss_file.columnTitleLastUpdate}"> <@icon style='calendar' />&nbsp;${rssFile.updateDate?date}</@span>
-								</#if>
-							</@td>
-							<@td>
-								<@aButton href='jsp/admin/plugins/rss/ModifyRssFile.jsp?rss_id=${rssFile.id}'  title='#i18n{rss.modify_rss_file.buttonValidate}' hideTitle=['all'] buttonIcon='pencil' size='sm' />
-								<@aButton href='jsp/admin/plugins/rss/DoConfirmDeleteRssFile.jsp?rss_id=${rssFile.id}' title='#i18n{rss.manage_rss_file.labelDelete}' hideTitle=['all'] buttonIcon='trash' size='sm' color='danger' />
-							</@td>
-						</@tr>
-						</#list>
-					</@tableBody>
-				</@table>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.manage_rss_file.tableLabel}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp?view=createRssFile' title='#i18n{rss.manage_rss_file.buttonAddFeed}' hideTitle=['xs','sm'] buttonIcon='plus' />
+		</@pageHeader>
+		<@messages infos=infos![] errors=errors![] warnings=warnings![] />
+		<#if rss_files_list?has_content>
+			<@manageFeature>
+			<#list rss_files_list as rssFile>
+				<@manageFeatureItem>
+					<@manageFeatureItemColumn auto=true flex=false>
+						<#if rssFile.state != 1>
+							<@tag color='success' title='#i18n{portal.util.labelEnabled}' tagIcon='check' />
+						<#else>
+							<@tag color='danger' title='#i18n{portal.util.labelDisabled}' tagIcon='x' />
+						</#if>
+						<strong>${rssFile.description!}</strong>
+						<p class='mb-0'><@link href='${rss_file_url}${rssFile.name}' target='_blank' title='#i18n{rss.manage_rss_file.columnTitleUrl}'>${rss_file_url}${rssFile.name} <@icon style='external-link' /></@link></p>
+						<#if rssFile.portletName??><p class='mb-0'>#i18n{rss.manage_rss_file.columnTitlePortlet} : ${rssFile.portletName}</p></#if>
+						<#if rssFile.updateDate??><p class='mb-0'><@icon style='calendar' /> #i18n{rss.manage_rss_file.columnTitleLastUpdate} ${rssFile.updateDate?date}</p></#if>
+					</@manageFeatureItemColumn>
+					<@manageFeatureItemColumn align='end'>
+						<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp?view=modifyRssFile&rss_id=${rssFile.id}' title='#i18n{portal.util.labelModify}' hideTitle=['all'] buttonIcon='edit' />
+						<@aButton href='jsp/admin/plugins/rss/ManageRssFiles.jsp?view=confirmRemoveRssFile&rss_id=${rssFile.id}' title='#i18n{portal.util.labelDelete}' hideTitle=['all'] buttonIcon='trash' color='danger' />
+					</@manageFeatureItemColumn>
+				</@manageFeatureItem>
+			</#list>
+			</@manageFeature>
+			<@paginationAdmin paginator=paginator combo=0 />
+		<#else>
+			<@empty title='#i18n{portal.util.labelNoItem}' />
+		</#if>
+	</@pageColumn>
+</@pageContainer>

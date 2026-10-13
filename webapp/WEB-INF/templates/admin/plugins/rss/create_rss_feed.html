@@ -1,27 +1,24 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.create_rss_feed.pageTitle}' />
-            <@boxBody>
-				<@tform method='post' name='create_rss_feed' id='create_rss_feed' action='jsp/admin/plugins/rss/DoCreateRssFeed.jsp'>
-					<@formGroup labelFor='folder_name' labelKey='#i18n{rss.create_rss_feed.rowTitleName}' mandatory=true>
-						<@input type='text' id='rss_feed_name' name='rss_feed_name' maxlength=50 />
-					</@formGroup>
-					<@formGroup labelFor='folder_path' labelKey='#i18n{rss.create_rss_feed.rowTitleUrl}' mandatory=true>
-						<@input type='text' id='rss_feed_url' name='rss_feed_url' maxlength=200 />
-					</@formGroup>
-					<@formGroup labelFor='rss_style' labelKey='#i18n{rss.create_rss_feed.rowRssStyle}'>
-						<@select name='rss_style' default_value='' items=rss_style_list />
-					</@formGroup>
-					<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.create_rss_feed.rowWorkgroupFile}'>
-						<@select name='workgroup_key' default_value='all' items=user_workgroup_list />
-					</@formGroup>
-					<@formGroup>
-						<@button type='submit' title='#i18n{rss.create_rss_feed.buttonValidate}' buttonIcon='save' />
-						<@button type='button' name='cancel' params='onclick="javascript:window.history.back();"' title='#i18n{rss.create_rss_file_resource.button_back}' buttonIcon='times' color='default' />
-					</@formGroup>
-				</@tform>
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title='#i18n{rss.create_rss_feed.pageTitle}'>
+			<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp' buttonIcon='arrow-left' title='#i18n{portal.util.labelBack}' color='light' />
+		</@pageHeader>
+		<@messages errors=errors![] />
+		<@tform method='post' name='create_rss_feed' id='create_rss_feed' action='jsp/admin/plugins/rss/ManageRssFeeds.jsp' boxed=true>
+			<@input type='hidden' name='action' value='createRssFeed' />
+			<@formGroup labelFor='rss_feed_name' labelKey='#i18n{rss.create_rss_feed.rowTitleName}' mandatory=true rows=2>
+				<@input type='text' id='rss_feed_name' name='rss_feed_name' maxlength=50 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='rss_feed_url' labelKey='#i18n{rss.create_rss_feed.rowTitleUrl}' mandatory=true rows=2>
+				<@input type='text' id='rss_feed_url' name='rss_feed_url' maxlength=200 mandatory=true />
+			</@formGroup>
+			<@formGroup labelFor='workgroup_key' labelKey='#i18n{rss.create_rss_feed.rowWorkgroupFile}' rows=2>
+				<@select name='workgroup_key' default_value=selected_workgroup!'all' items=user_workgroup_list />
+			</@formGroup>
+			<@formGroup rows=2>
+				<@button type='submit' title='#i18n{rss.create_rss_feed.buttonValidate}' buttonIcon='check' color='primary' />
+				<@aButton href='jsp/admin/plugins/rss/ManageRssFeeds.jsp' title='#i18n{portal.util.labelCancel}' buttonIcon='x' color='light' />
+			</@formGroup>
+		</@tform>
+	</@pageColumn>
+</@pageContainer>

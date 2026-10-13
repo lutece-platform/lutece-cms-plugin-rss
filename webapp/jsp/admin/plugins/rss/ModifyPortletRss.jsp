@@ -1,10 +1,9 @@
 <%@ page errorPage="../../ErrorPage.jsp" %>
-
 <jsp:include page="../../PortletAdminHeader.jsp" />
 
-<jsp:useBean id="rssPortlet" scope="session" class="fr.paris.lutece.plugins.rss.web.portlet.RssPortletJspBean" />
+<%@page import="fr.paris.lutece.plugins.rss.web.portlet.RssPortletJspBean"%>
 
-<% rssPortlet.init( request, rssPortlet.RIGHT_MANAGE_ADMIN_SITE ); %>
-<%= rssPortlet.getModify ( request ) %>
+${ rssPortletJspBean.init( pageContext.request, RssPortletJspBean.RIGHT_MANAGE_ADMIN_SITE ) }
+${ rssPortletJspBean.getModify( pageContext.request ) }
 
 <%@ include file="../../AdminFooter.jsp" %>

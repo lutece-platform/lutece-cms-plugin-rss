@@ -1,3 +1,3 @@
- <#list rss_list as rss>
-        <link rel="alternate" type="application/rss+xml" title="${rss.description}" href="plugins/rss/${rss.name}" />
- </#list>
+<#list rss_list as rss>
+	<link rel="alternate" type="application/rss+xml" title="${rss.description!}" href="plugins/rss/${rss.name}" />
+</#list>

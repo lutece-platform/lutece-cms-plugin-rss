@@ -35,8 +35,7 @@ package fr.paris.lutece.plugins.rss.business;
 
 import fr.paris.lutece.portal.business.portlet.Portlet;
 import fr.paris.lutece.portal.business.portlet.PortletHome;
-import fr.paris.lutece.portal.business.stylesheet.StyleSheet;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import jakarta.enterprise.inject.spi.CDI;
 
 import java.util.Collection;
 import java.util.List;
@@ -49,8 +48,7 @@ import java.util.List;
 public final class RssGeneratedFileHome
 {
     // Static variable pointed at the DAO instance
-    private static IRssGeneratedFileDAO _dao = (IRssGeneratedFileDAO) SpringContextService.getPluginBean( "rss",
-            "rssGeneratedFileDAO" );
+    private static IRssGeneratedFileDAO _dao = CDI.current( ).select( IRssGeneratedFileDAO.class ).get( );
 
     /**
      * Creates a new RssFileHome object.
@@ -147,17 +145,6 @@ public final class RssGeneratedFileHome
     public static String getPortletName( int nPortletId )
     {
         return _dao.selectRssFilePortletName( nPortletId );
-    }
-
-    /**
-     * Returns the stylesheet for RSS files
-     *
-     * @return the stylesheet
-     * @param nStylesheetId the identifier of the Stylesheet
-     */
-    public static StyleSheet getRssXsl( int nStylesheetId )
-    {
-        return _dao.selectXslFile( nStylesheetId );
     }
 
     ///////////////////////////////////////////////////////////////////////////

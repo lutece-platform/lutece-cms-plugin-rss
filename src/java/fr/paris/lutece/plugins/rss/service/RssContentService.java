@@ -34,35 +34,29 @@
 package fr.paris.lutece.plugins.rss.service;
 
 import fr.paris.lutece.portal.service.resource.ResourceService;
-import fr.paris.lutece.portal.service.util.AppLogService;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
 
 
 /**
  * RSS Content service
  */
-public final class RssContentService extends ResourceService
+@ApplicationScoped
+public class RssContentService extends ResourceService
 {
     private static final String PROPERTY_LOADER = "rss.content.service.loaders";
     private static final String PROPERTY_NAME = "rss.content.service.name";
     private static final String PROPERTY_CACHE = "rss.content.service.cache";
-    private static RssContentService _singleton = new RssContentService(  );
 
     /**
-     * Creates a new instance of RssContentService
+     * Initializes the name and the cache of the service
      */
-    private RssContentService(  )
+    @PostConstruct
+    void init(  )
     {
         setNameKey( PROPERTY_NAME );
         setCacheKey( PROPERTY_CACHE );
-    }
-
-    /**
-     * Returns the unique instance
-     * @return the unique instance
-     */
-    public static RssContentService getInstance(  )
-    {
-        return _singleton;
     }
 
     /**
@@ -84,24 +78,4 @@ public final class RssContentService extends ResourceService
         return (RssContent) getResource( strId );
     }
 
-    /**
-     * Gets the RSS content
-     * @param nIdRssFeed The RSS id
-     * @return The content
-     */
-    public String getRssContent( int nIdRssFeed )
-    {
-        String rssContent = "";
-
-        try
-        {
-            rssContent = RssContentLoader.fetchRssFeed( nIdRssFeed );
-        }
-        catch ( RssParsingException e )
-        {
-            AppLogService.error( e.getMessage(  ) );
-        }
-
-        return rssContent;
-    }
 }

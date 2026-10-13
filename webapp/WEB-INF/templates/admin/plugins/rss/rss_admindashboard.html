@@ -1,10 +1,6 @@
-<@row>
-	<@columns>
-		<@box>
-			<@boxHeader title='#i18n{rss.manage_rss.adminDashboard.pageTitle}' />
-            <@boxBody>
-				<#include 'advanced_parameters.html' />
-			</@boxBody>
-		</@box>
-	</@columns>
-</@row>
+<@box>
+	<@boxHeader title='#i18n{rss.manage_rss.adminDashboard.pageTitle}' />
+	<@boxBody>
+		<#include "/admin/plugins/rss/advanced_parameters.html" />
+	</@boxBody>
+</@box>

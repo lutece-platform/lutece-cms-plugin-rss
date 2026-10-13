@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset rss:init_db_rss_data_sample.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM rss_feed_parameter WHERE parameter_key = 'is_active'
 --
 -- Dumping data for table rss_feed
 --
