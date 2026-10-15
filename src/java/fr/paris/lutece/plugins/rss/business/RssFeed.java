@@ -54,6 +54,7 @@ public class RssFeed implements AdminWorkgroupResource
     private String _strIncludeTag;
     private int _nIdIncludeStyle;
     private boolean _bActive;
+    private int _nNbFailures;
 
     /**
     * Returns the Id
@@ -256,5 +257,21 @@ public class RssFeed implements AdminWorkgroupResource
     public void setIsActive( boolean bActive )
     {
         _bActive = bActive;
+    }
+
+    /**
+     * @return the number of consecutive failed fetches
+     */
+    public int getNbFailures(  )
+    {
+        return _nNbFailures;
+    }
+
+    /**
+     * @param nNbFailures the number of consecutive failed fetches
+     */
+    public void setNbFailures( int nNbFailures )
+    {
+        _nNbFailures = nNbFailures;
     }
 }
