@@ -15,22 +15,8 @@ CREATE TABLE rss_feed (
   last_fetch_error varchar(255) DEFAULT NULL,
   workgroup_key varchar(50) DEFAULT NULL,
   include_style int default -1,
-  PRIMARY KEY  (id_rss_feed)
-);
-
---
--- Structure for table rss_feed_inactive
---
-DROP TABLE IF EXISTS rss_feed_inactive;
-CREATE TABLE rss_feed_inactive (
-  id_rss_feed int DEFAULT '0' NOT NULL ,
-  name varchar(255) DEFAULT NULL,
-  url varchar(255) DEFAULT NULL,
-  last_fetch_date datetime DEFAULT NULL,
-  last_fetch_status int DEFAULT NULL,
-  last_fetch_error varchar(255) DEFAULT NULL,
-  workgroup_key varchar(50) DEFAULT NULL,
-  include_style int default -1,
+  is_active SMALLINT DEFAULT 1 NOT NULL,
+  nb_failures int DEFAULT 0 NOT NULL,
   PRIMARY KEY  (id_rss_feed)
 );
 
