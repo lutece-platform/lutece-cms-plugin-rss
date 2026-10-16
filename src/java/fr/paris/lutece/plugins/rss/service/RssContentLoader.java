@@ -35,12 +35,16 @@ package fr.paris.lutece.plugins.rss.service;
 
 import fr.paris.lutece.plugins.rss.business.RssFeed;
 import fr.paris.lutece.plugins.rss.business.RssFeedHome;
+import fr.paris.lutece.plugins.rss.business.portlet.RssPortletHome;
 import fr.paris.lutece.portal.service.resource.Resource;
 import fr.paris.lutece.portal.service.resource.ResourceLoader;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPathService;
+import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.httpaccess.HttpAccess;
 import fr.paris.lutece.util.httpaccess.HttpAccessException;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -55,6 +59,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Comparator;
 
 
 /**
@@ -67,6 +73,7 @@ public class RssContentLoader implements ResourceLoader
     private static final String FILE_EXT = ".xml";
     private static final int FETCH_OK = 0;
     private static final int FETCH_ERROR = 1;
+    private static final String PROPERTY_MAX_FAILURES = "rss.content.service.maxFailures";
 
     /**
      * Implementation of the ResourceLoader interface
@@ -125,6 +132,19 @@ public class RssContentLoader implements ResourceLoader
      */
     public static String fetchRssFeed( int nId ) throws RssParsingException
     {
+        return fetchRssFeed( nId, null );
+    }
+
+    /**
+     * Fetches a feed. When listToDeactivate is not null, a feed to deactivate is added to it instead of being deactivated at once:
+     * deactivating a feed renumbers the active feeds after it, which would shift the ids of a loop over the active feeds
+     * @param nId the feed id
+     * @param listToDeactivate the feeds to deactivate once the loop is over, or null to deactivate at once
+     * @return the content
+     * @throws RssParsingException If a parsing exception occurs
+     */
+    private static String fetchRssFeed( int nId, List<RssFeed> listToDeactivate ) throws RssParsingException
+    {
         String strContent = null;
         RssFeed rss = RssFeedHome.findByPrimaryKey( nId, true );
         HttpAccess httpAccess = new HttpAccess(  );
@@ -134,16 +154,40 @@ public class RssContentLoader implements ResourceLoader
             strContent = httpAccess.doGet( rss.getUrl(  ) );
             rss.setLastFetchStatus( FETCH_OK );
             rss.setLastFetchError( "" );
+            rss.setNbFailures( 0 );
             saveInCacheFile( rss.getId(  ), strContent );
         }
         catch ( HttpAccessException e )
         {
             rss.setLastFetchStatus( FETCH_ERROR );
-            rss.setLastFetchError( e.getMessage(  ) );
+            // last_fetch_error is a varchar(255): the HttpAccess message holds the response body
+            rss.setLastFetchError( StringUtils.abbreviate( e.getMessage(  ), 255 ) );
+            rss.setNbFailures( rss.getNbFailures(  ) + 1 );
+            AppLogService.error( "RSS feed id={} fetch failed ({} consecutive failures) : {}", rss.getId(  ), rss.getNbFailures(  ), e.getMessage(  ) );
         }
 
         rss.setLastFetchDate( new Timestamp( new Date(  ).getTime(  ) ) );
         RssFeedHome.updateLastFetchInfos( rss );
+
+        if ( rss.getNbFailures(  ) >= AppPropertiesService.getPropertyInt( PROPERTY_MAX_FAILURES, 10 ) )
+        {
+            if ( RssPortletHome.checkNoPortletLinked( rss.getId(  ) ) )
+            {
+                AppLogService.error( "RSS feed id={} deactivated after {} consecutive failures", rss.getId(  ), rss.getNbFailures(  ) );
+                if ( listToDeactivate != null )
+                {
+                    listToDeactivate.add( rss );
+                }
+                else
+                {
+                    RssFeedHome.setActive( rss, false );
+                }
+            }
+            else
+            {
+                AppLogService.error( "RSS feed id={} failed {} times in a row but is linked to a portlet, left active", rss.getId(  ), rss.getNbFailures(  ) );
+            }
+        }
 
         return strContent;
     }
@@ -180,11 +224,11 @@ public class RssContentLoader implements ResourceLoader
         }
         catch ( FileNotFoundException e )
         {
-            AppLogService.error( e.getMessage(  ), e );
+            AppLogService.error( "RSS feed id={} cache file error : {}", strId, e.getMessage(  ), e );
         }
         catch ( IOException e )
         {
-            AppLogService.error( e.getMessage(  ), e );
+            AppLogService.error( "RSS feed id={} cache file error : {}", strId, e.getMessage(  ), e );
         }
         finally
         {
@@ -198,7 +242,7 @@ public class RssContentLoader implements ResourceLoader
             }
             catch ( IOException e )
             {
-                AppLogService.error( e.getMessage(  ), e );
+                AppLogService.error( "RSS feed id={} cache file error : {}", strId, e.getMessage(  ), e );
             }
         }
 
@@ -230,7 +274,7 @@ public class RssContentLoader implements ResourceLoader
         }
         catch ( IOException io )
         {
-            AppLogService.error( io.getMessage(  ), io );
+            AppLogService.error( "RSS feed id={} cache file error : {}", nId, io.getMessage(  ), io );
         }
     }
 
@@ -243,6 +287,7 @@ public class RssContentLoader implements ResourceLoader
         StringBuffer sbProcessingLog = new StringBuffer(  );
         Collection colRssFeeds = RssFeedHome.getRssFeeds(  );
         Iterator i = colRssFeeds.iterator(  );
+        List<RssFeed> listToDeactivate = new ArrayList<>(  );
 
         while ( i.hasNext(  ) )
         {
@@ -250,7 +295,7 @@ public class RssContentLoader implements ResourceLoader
 
             try
             {
-                fetchRssFeed( rss.getId(  ) );
+                fetchRssFeed( rss.getId(  ), listToDeactivate );
             }
             catch ( RssParsingException ex )
             {
@@ -259,6 +304,10 @@ public class RssContentLoader implements ResourceLoader
 
             sbProcessingLog.append( "\nFetching " + rss.toString(  ) );
         }
+
+        // highest id first: deactivating a feed only renumbers the active feeds after it
+        listToDeactivate.sort( Comparator.comparingInt( RssFeed::getId ).reversed(  ) );
+        listToDeactivate.forEach( rss -> RssFeedHome.setActive( rss, false ) );
 
         return sbProcessingLog.toString(  );
     }
